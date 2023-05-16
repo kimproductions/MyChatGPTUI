@@ -19,6 +19,10 @@ main {
     overflow-y: auto;
 }
 
+.messages {
+    
+}
+
 #header {
     display: flex;
     justify-content: center;
@@ -114,13 +118,13 @@ textarea {
 
 @media screen and (min-width: 769px) {
     .message {
-        width: 60vw;
+        width: 70vw;
     }
 }
 
 @media screen and (min-width: 1025px) {
     .message {
-        width: 40vw;
+        width: 50vw;
     }
 } 
 

@@ -4,6 +4,7 @@
  * code includes functionality to handle errors and abort requests using an AbortController.
  * The API_KEY variable needs to be updated with the appropriate value from OpenAI for successful API communication.
  */
+// Prism.plugins.autoloader.languages_path = 'prism-components/';
 
 const API_URL = "https://api.openai.com/v1/chat/completions";
 const API_KEY = "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";
@@ -19,30 +20,17 @@ const model = document.getElementById("model");
 const maxLines = 10;
 const controls = document.getElementsByClassName("controls")[0];
 const tokenLimitErrorMessage = document.getElementById("token-limit-error");
+const messagesContainer = document.getElementById("messages-container");
 
 let controller = null; // Store the AbortController instance
 let conversation = []; // Store the conversation history
 let isGenerating; // Store the state of the generator
-const pre1 = document.createElement("pre");
-const code1 = document.createElement("code");
-code1.classList.add("language-js");
-code1.textContent = "";
-pre1.appendChild(code1);
-resultContainer.appendChild(pre1);
 
 const generate = async () => {
-  // Alert the user if no prompt value
-  if (!promptInput.value) {
-    alert("Please enter a prompt.");
-    return;
-  }
   tokenLimitErrorMessage.style.display = "none";
-  // alert(model.value);
-
   // Disable the generate button and enable the stop button
   generateBtn.disabled = true;
   stopBtn.disabled = false;
-  // resultText.innerText = "Generating...";
   // Create a new AbortController instance
   controller = new AbortController();
   const signal = controller.signal;
@@ -58,9 +46,8 @@ const generate = async () => {
     userMessage.innerText = promptValue;
     userMessage.classList.add("user-text", "message");
     resultContainer.appendChild(userMessage);
-    scrollIfNearBottom();
-    // promptInput.setAttribute("disabled", true);
 
+    scrollIfNearBottom();
     // Fetch the response from the OpenAI API with the signal from AbortController
     const response = await fetch(API_URL, {
       method: "POST",
@@ -82,8 +69,6 @@ const generate = async () => {
       signal, // Pass the signal to the fetch request
     });
 
-
-
     //check the server response, if it's 400 
     if (!response.ok) {
       if (response.status === 400) {
@@ -100,22 +85,26 @@ const generate = async () => {
     // Read the response as a stream of data
     const reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
-    // resultText.innerText = "";
 
-    //create a paragraph for the new text
+    const messageDiv = document.createElement("div");
+    messageDiv.innerText = "";
+    messageDiv.classList.add("assistant-text", "message");
+    resultContainer.appendChild(messageDiv);
 
-    const paragraph = document.createElement("p");
-    paragraph.innerText = "";
-    paragraph.classList.add("assistant-text", "message");
+    let currentParagraph = document.createElement("p");
+    messageDiv.appendChild(currentParagraph);
 
-    resultContainer.appendChild(paragraph);
+
     let fullResult = "";
 
-    resultContainer.scrollTop = resultContainer.scrollHeight;
+    
+    scrollToBottom();
 
     let isCodeBlock = false;
-    let lastThreeContents = [];
+    let lastTwoContents = [];
     let currentCodeBlock = null;
+    let fullResultData = null;
+    
 
     while (true) {
       const { done, value } = await reader.read();
@@ -136,50 +125,65 @@ const generate = async () => {
         const { choices } = parsedLine;
         const { delta } = choices[0];
         const { content } = delta;
-        // Update the UI with the new content
-        
+
         if (content) {
           console.log(content);
 
-          lastThreeContents.push(content);
-          if (lastThreeContents.length > 3) {
-            lastThreeContents.shift();
-          }
-          const combinedContents = lastThreeContents.join('');
+          lastTwoContents.push(content);
+          if (lastTwoContents.length > 2) {
+            lastTwoContents.shift();
 
-          if (combinedContents.includes("```"))
-          { // Check for backticks
+          }
+          let combinedContents = lastTwoContents.join("");
+          
+          //check last two for backticks
+          if (combinedContents.includes("```")) {
             // alert("backticks detected");
             console.log("backticks detected");
             console.log(combinedContents);
             if (!isCodeBlock) {
               isCodeBlock = true;
-              currentCodeBlock = createNewCodeBlock();
+              currentCodeBlock = createNewCodeBlock(messageDiv);
+              scrollIfNearBottom();
+              // textDiv.innerHTML = 
             } else {
               isCodeBlock = false;
+              currentParagraph = document.createElement("p");
+              messageDiv.appendChild(currentParagraph);
             }
             
             //take out the backticks from the lastthreecontents array
-            lastThreeContents = lastThreeContents.filter((content) => {
+            lastTwoContents = lastTwoContents.filter((content) => {
                 return !(content.includes("```") || content.includes("``") || content.includes("`"));
-            });
-
-            // cleanedContent = cleanedContent.replace(/`+/g, '');
-            
+            });            
           }
           else if (isCodeBlock) {
             if (!content.includes("`"))
             {
-              currentCodeBlock.textContent += content;
+              currentCodeBlock.innerText += content;
+              // hljs.highlightAuto(currentCodeBlock);
+              if (currentCodeBlock.innerText.length > 20)
+              {
+                var result = hljs.highlightAuto(currentCodeBlock.innerText);
+                console.log(result);
+                if (result)
+                {
+                  currentCodeBlock.className = `language-${result.language}`;
+                  Prism.highlightElement(currentCodeBlock);
+                }
+
+              }
+              
+              // Prism.highlightElement(currentCodeBlock);
+              scrollIfNearBottom();
             }
           }
-          else {
+          else if (!isCodeBlock) { //check for single backticks to bold the text.
             // This is not a code block, so just add the content to the paragraph
-            if (!content.includes("`"))
-            {
-              paragraph.innerText += content;
-              fullResult += content;
-            }
+            
+            currentParagraph.innerText += content;
+              
+            fullResult += content;
             
             requestAnimationFrame(() => {
               requestAnimationFrame(scrollIfNearBottom);
@@ -193,15 +197,14 @@ const generate = async () => {
     //log the conversation array
     console.log(conversation);
     isGenerating = false;
+    // Prism.highlightAll();
 
   } catch (error) {
     // Handle fetch request errors
     if (signal.aborted) {
-
       // resultText.innerText = "Request aborted.";
     } else {
       console.error("Error:", error);
-      // resultText.innerText = "Error occurred while generating.";
     }
   } finally {
     // Enable the generate button and disable the stop button
@@ -212,29 +215,41 @@ const generate = async () => {
   }
 };
 
-function createNewCodeBlock() {
+function createNewCodeBlock(textDiv) {
   const pre = document.createElement("pre");
   const code = document.createElement("code");
-  code.classList.add("language-js");
   code.textContent = "";
   pre.appendChild(code);
-  resultContainer.appendChild(pre);
-  Prism.highlightElement(code);
+
+  // Append pre to paragraph instead of resultContainer
+  textDiv.appendChild(pre);
   return code;
 }
 
+function arrayIncludes(array, target) {
+  return array.some(element => element.includes(target));
+}
+
+function includesAny(array, targetStrings) {
+    return targetStrings.some(target => array.some(element => element.includes(target)));
+}
 
 function hasBackticks(str) {
     return str.includes('`');
 }
 
 function scrollIfNearBottom() {
-  let buffer = 30; // change this to increase/decrease the buffer
-  let isAtBottom = resultContainer.scrollHeight - resultContainer.clientHeight - buffer <= resultContainer.scrollTop;
+  let buffer = 65; // change this to increase/decrease the buffer
+  let isAtBottom = messagesContainer.scrollHeight - messagesContainer.clientHeight - buffer <= messagesContainer.scrollTop;
 
   if (isAtBottom) {
-    resultContainer.scrollTop = resultContainer.scrollHeight - resultContainer.clientHeight;
+    messagesContainer.scrollTop = messagesContainer.scrollHeight - messagesContainer.clientHeight;
   }
+}
+
+function scrollToBottom()
+{
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
 const stop = () => {
