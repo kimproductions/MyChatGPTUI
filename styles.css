@@ -1,0 +1,145 @@
+body,
+p {
+    margin: 0;
+    font-family: 'Noto Sans';
+    font-size: 14px;
+}
+
+main {
+    height: 100vh;
+    width: 100vw;
+    background: whitesmoke;
+    display: flex;
+    flex-direction: column;
+}
+#middle-section {
+    display:flex;
+    flex-grow: 1;
+    flex-direction: row;
+    overflow-y: auto;
+}
+
+#header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: aliceblue;
+    margin: 0;
+    padding: 10px;
+}
+
+input, select, option {
+    font-family: 'Noto Sans';
+}
+
+#settings
+{
+    background-color: rgb(204, 204, 204);
+    padding: 15px;
+    border-radius: 10px;
+    flex-direction: column;
+}
+
+.controls {
+    /*   height: 2rem; */
+    padding: 1rem;
+    /*   flex-shrink: 0; */
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    background: grey;
+    border-radius: 10px;
+    width: 50vw;
+    margin: auto;
+    position: relative;
+}
+
+textarea {
+    resize: none;
+    /* Disables resizing of textarea */
+    /* overflow: auto; */
+    
+    font-family: 'Noto Sans';
+    font-size: 14px;
+    border-radius: 4px;
+    /* Adds scroll functionality when the text is longer than the textarea */
+}
+
+.control-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+.control-buttons button {
+    flex-grow: 1;
+    flex-basis: 0;
+}
+
+.messages {
+    flex-grow: 1;
+    flex-direction: column;
+    overflow-y: auto;
+    line-height: 1.5;
+}
+
+.messages p {
+    /* width: 200px; */
+}
+
+.user-text {
+    padding: 20px 40px;
+    background-color: rgb(240, 240, 240);
+    overflow-wrap: break-word;
+    /* width: 100%; */
+    /* box-sizing: border-box; */
+    
+}
+
+.assistant-text {
+    background-color: rgb(230, 230, 230);
+    overflow-wrap: break-word;
+    padding: 20px 40px;
+    line-height: 1.7;
+}
+.message {
+    width: 90vw;
+    margin: auto;
+}
+
+@media screen and (min-width: 601px) {
+    .message {
+        width: 80vw;
+    }
+}
+
+@media screen and (min-width: 769px) {
+    .message {
+        width: 60vw;
+    }
+}
+
+@media screen and (min-width: 1025px) {
+    .message {
+        width: 40vw;
+    }
+} 
+
+.btn {
+    font-family: 'Noto Sans';
+    font-size: 14px;
+    border-radius: 10px;
+    border: none;
+    height: 30px;
+}
+
+#token-limit-error {
+    display: none;
+    color: red;
+    /* display: none; */
+    position:absolute;
+    top: -30px;
+    justify-self: center;
+    background-color: aliceblue;
+    border-radius: 10px;
+}
+
