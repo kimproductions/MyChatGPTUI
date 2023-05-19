@@ -10,13 +10,36 @@ main {
     width: 100vw;
     background: whitesmoke;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
 }
+
+#chat-interface {
+    display: flex;
+    flex-direction: column;
+    margin: auto;
+    height: 100%;
+}
+
 #middle-section {
     display:flex;
     flex-grow: 1;
     flex-direction: row;
     overflow-y: auto;
+}
+
+#conversation-history {
+}
+
+#conversation-history-wrapper
+{   
+    overflow-y: auto;
+    width: 10vw;
+    padding: 20px;
+    background-color: rgb(204, 204, 204);
+}
+
+.conversation {
+    padding: 10px;
 }
 
 .messages {
@@ -42,6 +65,7 @@ input, select, option {
     padding: 15px;
     border-radius: 10px;
     flex-direction: column;
+    overflow-y: auto;
 }
 
 #system-message
@@ -74,6 +98,7 @@ textarea {
     border-radius: 4px;
     /* Adds scroll functionality when the text is longer than the textarea */
 }
+
 
 .control-buttons {
     display: flex;
@@ -158,3 +183,20 @@ strong {
     border-radius: 10px;
 }
 
+.convo-btn
+{
+    font-family: 'Noto Sans';
+    font-size: 14px;
+    border-radius: 10px;
+    border: none;
+    height: 30px;
+    overflow: hidden;
+    background-color: rgb(255, 255, 255);
+}
+
+.convo-btn:hover {
+    background-color: rgb(241, 241, 241);
+}
+.convo-btn:click {
+    background-color: rgb(228, 228, 228);
+}

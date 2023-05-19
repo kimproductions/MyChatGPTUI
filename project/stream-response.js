@@ -42,11 +42,14 @@ const generate = async () => {
     conversation.push({ role: "system", content: systemMessageTextArea.value }); //add the system message to the conversation array
     conversation.push({ role: "user", content: promptValue }); //add the user message to the conversation array
     autoGrow(promptInput);
+
     //create a new paragraph for the user message
-    const userMessage = document.createElement("p");
-    userMessage.innerText = promptValue;
-    userMessage.classList.add("user-text", "message");
-    resultContainer.appendChild(userMessage);
+    const userMessageDiv = document.createElement("div");
+    const userMessageParagraph = document.createElement("p");
+    userMessageDiv.appendChild(userMessageParagraph);
+    userMessageParagraph.innerText = promptValue;
+    userMessageDiv.classList.add("user-text", "message");
+    resultContainer.appendChild(userMessageDiv);
 
     scrollIfNearBottom();
     // Fetch the response from the OpenAI API with the signal from AbortController
@@ -87,13 +90,11 @@ const generate = async () => {
     const reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
 
-    const messageDiv = document.createElement("div");
-    messageDiv.innerText = "";
-    messageDiv.classList.add("assistant-text", "message");
-    resultContainer.appendChild(messageDiv);
-
-    let currentParagraph = document.createElement("p");
-    messageDiv.appendChild(currentParagraph);
+    const assistantMessageDiv = document.createElement("div");
+    assistantMessageDiv.classList.add("assistant-text", "message");
+    resultContainer.appendChild(assistantMessageDiv);
+    let currentResponseParagraph = document.createElement("p");
+    assistantMessageDiv.appendChild(currentResponseParagraph);
 
 
     let fullResult = "";
@@ -144,18 +145,18 @@ const generate = async () => {
             // alert("backticks detected");
             console.log("backticks detected");
             console.log(combinedContents);
-            const lengthToDelete = lastTwoContents[0].length;
+            // const lengthToDelete = lastTwoContents[0].length;
             
 
             if (!isCodeBlock) {
               isCodeBlock = true;
-              currentCodeBlock = createNewCodeBlock(messageDiv);
+              currentCodeBlock = createNewCodeBlock(assistantMessageDiv);
               scrollIfNearBottom();
               // textDiv.innerHTML = 
             } else {
               isCodeBlock = false;
-              currentParagraph = document.createElement("p");
-              messageDiv.appendChild(currentParagraph);
+              currentResponseParagraph = document.createElement("p");
+              assistantMessageDiv.appendChild(currentResponseParagraph);
             }
             
             //take out the backticks from the lastthreecontents array
@@ -164,7 +165,7 @@ const generate = async () => {
             });            
           }
           else if (isCodeBlock) {
-            if (!content.includes("`"))
+            if (!content.includes("``"))
             {
               currentCodeBlock.innerText += content;
               // hljs.highlightAuto(currentCodeBlock);
@@ -178,7 +179,6 @@ const generate = async () => {
                   currentCodeBlock.className = `language-${result.language}`;
                   Prism.highlightElement(currentCodeBlock);
                 }
-
               }
               
               // Prism.highlightElement(currentCodeBlock);
@@ -190,18 +190,18 @@ const generate = async () => {
             if (containsOneBacktick(content) && !isInlineCodeBlock)
             {
               isInlineCodeBlock = true;
-              currentParagraph.innerHTML += "<strong>";
+              currentResponseParagraph.innerHTML += "<strong>";
             }
             else
             {
               isInlineCodeBlock = false;
-              currentParagraph.innerHTML += "</strong>";
+              currentResponseParagraph.innerHTML += "</strong>";
             }
 
             if (isInlineCodeBlock)
             {
             }
-            currentParagraph.innerHTML += content;
+            currentResponseParagraph.innerHTML += content;
 
             // currentParagraph.innerText += content;
               
@@ -234,6 +234,7 @@ const generate = async () => {
     stopBtn.disabled = true;
     controller = null; // Reset the AbortController instance
     isGenerating = false;
+    saveConversation();
   }
 };
 
@@ -290,6 +291,10 @@ const stop = () => {
   }
 };
 
+document.getElementById("token-range").addEventListener("input", function (event) {
+  this.nextElementSibling.value = this.value;
+});
+
 promptInput.addEventListener("keyup", (event) => {
   if (event.key === "Enter" && !isGenerating && !event.shiftKey) {
     generate();
@@ -326,3 +331,131 @@ function autoGrow(textarea, maxLines) {
 promptInput.addEventListener('input', () => autoGrow(promptInput, 10));
 suffixInput.addEventListener('input', () => autoGrow(suffixInput, 10));
 systemMessageTextArea.addEventListener('input', () => autoGrow(systemMessageTextArea, 10));
+
+
+
+
+
+const saveConversationsFolder = 'savedConversations';
+
+// Save conversation
+function saveConversation() {
+  const isNameAlreadyUsed = (name) => {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key.startsWith(`${saveConversationsFolder}/${name}`)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const generateUniqueName = (filename) => {
+    let newName = filename;
+    let index = 1;
+    while (isNameAlreadyUsed(newName)) {
+      newName = `${filename}-${index}`;
+      index += 1;
+    }
+    return newName;
+  };
+
+  if (conversation.length > 0) {
+    let filename = conversation[0].content.slice(0, 20);
+    if (!isNameAlreadyUsed(filename)) {
+      filename = generateUniqueName(filename);
+    }
+    
+    // Save or update the conversation with the filename
+    localStorage.setItem(`${saveConversationsFolder}/${filename}`, JSON.stringify(conversation));
+    console.log(`Conversation saved: ${filename}`);
+    loadSavedConversations();
+  }
+}
+
+// Load saved conversations
+function loadSavedConversations() {
+  const conversationHistory = document.getElementById('conversation-history');
+  conversationHistory.innerHTML = '';
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith(saveConversationsFolder)) {
+      const conversationName = key.split('/')[1];
+      console.log(`Loading conversation: ${conversationName}`);
+      const conversationDiv = document.createElement('div');
+      conversationDiv.className = 'conversation';
+
+      const convoBtn = document.createElement('button');
+      convoBtn.className = 'convo-btn';
+      convoBtn.innerText = conversationName;
+      convoBtn.addEventListener('click', () => loadConversation(conversationName));
+      conversationDiv.appendChild(convoBtn);
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-convo-btn';
+      deleteBtn.innerText = 'X';
+      deleteBtn.addEventListener('click', () => deleteConversation(conversationName));
+      conversationDiv.appendChild(deleteBtn);
+
+      const renameBtn = document.createElement('button');
+      renameBtn.className = 'rename-convo-btn';
+      renameBtn.innerText = 'R';
+      renameBtn.addEventListener('click', () => renameConversation(conversationName));
+      conversationDiv.appendChild(renameBtn);
+
+      conversationHistory.appendChild(conversationDiv);
+    }
+  }
+}
+
+// Load a specific conversation
+function loadConversation(name) {
+  const savedConvo = localStorage.getItem(`${saveConversationsFolder}/${name}`);
+  if (savedConvo) {
+    conversation = JSON.parse(savedConvo);
+    console.log(`Loaded conversation: ${name}`);
+    updateUIWithLoadedConversation();
+  }
+}
+
+// Update UI with the loaded conversation
+function updateUIWithLoadedConversation() {
+  console.log('Updating UI with loaded conversation:', conversation);
+  // clearConvo();
+  resultContainer.innerHTML = "";
+  conversation.forEach(({ role, content }) => {
+    const messageDiv = document.createElement('div');
+    const messageParagraph = document.createElement('p');
+    messageDiv.appendChild(messageParagraph);
+    messageParagraph.innerText = content;
+
+    if (role === 'user') {
+      messageDiv.classList.add('user-text', 'message');
+    } else {
+      messageDiv.classList.add('assistant-text', 'message');
+    }
+    resultContainer.appendChild(messageDiv);
+  });
+}
+
+// Delete a conversation
+function deleteConversation(name) {
+  if (confirm(`Are you sure you want to delete "${name}"?`)) {
+    localStorage.removeItem(`${saveConversationsFolder}/${name}`);
+    loadSavedConversations();
+  }
+}
+
+// Rename a conversation
+function renameConversation(oldName) {
+  const newName = prompt('Enter a new name for the conversation:', oldName);
+  if (newName && newName !== oldName) {
+    const savedConvo = localStorage.getItem(`${saveConversationsFolder}/${oldName}`);
+    localStorage.removeItem(`${saveConversationsFolder}/${oldName}`);
+    localStorage.setItem(`${saveConversationsFolder}/${newName}`, savedConvo);
+    loadSavedConversations();
+  }
+}
+
+document.getElementById("save-convo-btn").addEventListener("click", saveConversation);
+loadSavedConversations();
