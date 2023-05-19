@@ -44,6 +44,12 @@ input, select, option {
     flex-direction: column;
 }
 
+#system-message
+{
+    margin:auto;
+    /* height: 100px; */
+}
+
 .controls {
     /*   height: 2rem; */
     padding: 1rem;
@@ -88,6 +94,11 @@ textarea {
 
 .messages p {
     /* width: 200px; */
+}
+
+strong {
+    font-weight: bold;
+    /* font-size: 10px; */
 }
 
 .user-text {

@@ -17,10 +17,10 @@ const clearBtn = document.getElementById("clear-convo-btn");
 // const resultText = document.getElementById("resultText");
 const resultContainer = document.getElementById("result-container");
 const model = document.getElementById("model");
-const maxLines = 10;
 const controls = document.getElementsByClassName("controls")[0];
 const tokenLimitErrorMessage = document.getElementById("token-limit-error");
 const messagesContainer = document.getElementById("messages-container");
+const systemMessageTextArea = document.getElementById("system-message");
 
 let controller = null; // Store the AbortController instance
 let conversation = []; // Store the conversation history
@@ -39,6 +39,7 @@ const generate = async () => {
     isGenerating = true;
     const promptValue = promptInput.value;
     promptInput.value = "";
+    conversation.push({ role: "system", content: systemMessageTextArea.value }); //add the system message to the conversation array
     conversation.push({ role: "user", content: promptValue }); //add the user message to the conversation array
     autoGrow(promptInput);
     //create a new paragraph for the user message
@@ -101,6 +102,8 @@ const generate = async () => {
     scrollToBottom();
 
     let isCodeBlock = false;
+    let isInlineCodeBlock = false;
+
     let lastTwoContents = [];
     let currentCodeBlock = null;
     let fullResultData = null;
@@ -141,6 +144,9 @@ const generate = async () => {
             // alert("backticks detected");
             console.log("backticks detected");
             console.log(combinedContents);
+            const lengthToDelete = lastTwoContents[0].length;
+            
+
             if (!isCodeBlock) {
               isCodeBlock = true;
               currentCodeBlock = createNewCodeBlock(messageDiv);
@@ -168,6 +174,7 @@ const generate = async () => {
                 console.log(result);
                 if (result)
                 {
+                  currentCodeBlock.innerHTML = currentCodeBlock.innerHTML.replace(/[<]br[/]?[>]/gi,"\n");
                   currentCodeBlock.className = `language-${result.language}`;
                   Prism.highlightElement(currentCodeBlock);
                 }
@@ -180,8 +187,23 @@ const generate = async () => {
           }
           else if (!isCodeBlock) { //check for single backticks to bold the text.
             // This is not a code block, so just add the content to the paragraph
-            
-            currentParagraph.innerText += content;
+            if (containsOneBacktick(content) && !isInlineCodeBlock)
+            {
+              isInlineCodeBlock = true;
+              currentParagraph.innerHTML += "<strong>";
+            }
+            else
+            {
+              isInlineCodeBlock = false;
+              currentParagraph.innerHTML += "</strong>";
+            }
+
+            if (isInlineCodeBlock)
+            {
+            }
+            currentParagraph.innerHTML += content;
+
+            // currentParagraph.innerText += content;
               
             fullResult += content;
             
@@ -218,11 +240,14 @@ const generate = async () => {
 function createNewCodeBlock(textDiv) {
   const pre = document.createElement("pre");
   const code = document.createElement("code");
+  code.className = "language-js";
   code.textContent = "";
   pre.appendChild(code);
 
   // Append pre to paragraph instead of resultContainer
   textDiv.appendChild(pre);
+  Prism.highlightElement(code);
+
   return code;
 }
 
@@ -250,6 +275,11 @@ function scrollIfNearBottom() {
 function scrollToBottom()
 {
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function containsOneBacktick(str) {
+  const regex = /^[^]*$/;  // regex to match one backtick surrounding any number of characters that are not a backtick
+  return regex.test(str);
 }
 
 const stop = () => {
@@ -284,7 +314,7 @@ function clearConvo() {
   resultContainer.innerHTML = "";
 }
 
-function autoGrow(textarea) {
+function autoGrow(textarea, maxLines) {
   const lineHeight = 1.2 * 16;  // Assuming a line-height of 1.2em and a font-size of 16px
   const maxHeight = lineHeight * maxLines;
   textarea.style.height = 'auto';  // Temporarily reduce the height to calculate the scrollHeight
@@ -293,5 +323,6 @@ function autoGrow(textarea) {
   textarea.style.overflowY = newHeight < textarea.scrollHeight ? 'scroll' : 'hidden';
 }
 
-promptInput.addEventListener('input', () => autoGrow(promptInput));
-suffixInput.addEventListener('input', () => autoGrow(suffixInput));
+promptInput.addEventListener('input', () => autoGrow(promptInput, 10));
+suffixInput.addEventListener('input', () => autoGrow(suffixInput, 10));
+systemMessageTextArea.addEventListener('input', () => autoGrow(systemMessageTextArea, 10));
