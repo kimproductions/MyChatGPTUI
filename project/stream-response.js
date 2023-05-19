@@ -7,7 +7,7 @@
 // Prism.plugins.autoloader.languages_path = 'prism-components/';
 
 const API_URL = "https://api.openai.com/v1/chat/completions";
-/* const API_KEY = "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"; */
+
 let API_KEY = document.getElementById("api-key");
 const promptInput = document.getElementById("prompt-input");
 const suffixInput = document.getElementById("suffix-input");
