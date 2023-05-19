@@ -7,8 +7,8 @@
 // Prism.plugins.autoloader.languages_path = 'prism-components/';
 
 const API_URL = "https://api.openai.com/v1/chat/completions";
-const API_KEY = "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";
-
+/* const API_KEY = "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"; */
+let API_KEY = document.getElementById("api-key");
 const promptInput = document.getElementById("prompt-input");
 const suffixInput = document.getElementById("suffix-input");
 const generateBtn = document.getElementById("generate-btn");
@@ -21,6 +21,7 @@ const controls = document.getElementsByClassName("controls")[0];
 const tokenLimitErrorMessage = document.getElementById("token-limit-error");
 const messagesContainer = document.getElementById("messages-container");
 const systemMessageTextArea = document.getElementById("system-message");
+
 
 let controller = null; // Store the AbortController instance
 let conversation = []; // Store the conversation history
@@ -57,7 +58,7 @@ const generate = async () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${API_KEY}`,
+        Authorization: `Bearer ${API_KEY.value}`,
       },
       body: JSON.stringify({
         model: model.value,
