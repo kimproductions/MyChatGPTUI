@@ -8,6 +8,7 @@
 
 const API_URL = "https://api.openai.com/v1/chat/completions";
 const apiKey = document.getElementById("api-key");
+const api_key = "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";
 const promptInput = document.getElementById("prompt-input");
 const suffixInput = document.getElementById("suffix-input");
 const generateBtn = document.getElementById("generate-btn");
@@ -24,6 +25,128 @@ const systemMessageTextArea = document.getElementById("system-message");
 let controller = null; // Store the AbortController instance
 let conversation = []; // Store the conversation history
 let isGenerating; // Store the state of the generator
+
+const createFileName = (Conversation) => {
+  console.log('Conversation: ', Conversation);
+
+  let fileName = 'Conversation';
+  if (Conversation.length > 0) {
+    const content = removeHTMLTags(Conversation[1].content);
+    fileName = content.length <= 20 ? content : content.slice(0, 20);
+  }
+  else
+  {
+    filename = "Empty Conversation";
+  }
+
+  console.log('Initial fileName: ', fileName);
+
+  let counter = 1;
+  while (localStorage.getItem(fileName)) {
+    const newContent = removeHTMLTags(Conversation[1].content);
+    fileName = newContent.length <= 20 ? `${newContent}_${counter}` : `${newContent.slice(0, 20)}_${counter}`;
+    counter++;
+  }
+
+  console.log('Final fileName: ', fileName);
+  return fileName;
+};
+
+// Save conversation
+const saveConversation = () => {
+  if (conversation.fileName) {
+    // Update the existing conversation file
+    localStorage.setItem(conversation.fileName, JSON.stringify(conversation));
+  } else {
+    // Create a new conversation file
+    const fileName = createFileName(conversation);
+    conversation.fileName = fileName;
+    localStorage.setItem(fileName, JSON.stringify(conversation));
+  }
+
+  loadConversationList();
+};
+
+// Load a conversation
+const loadConversationFromFile = (fileName) => {
+  const storedConversation = JSON.parse(localStorage.getItem(fileName));
+  conversation = storedConversation ? storedConversation : [];
+  conversation.fileName = fileName; // Add this line to set the fileName property when loading a stored conversation
+  updateResultContainer(conversation);
+};
+
+// Update the result container with the loaded conversation
+const updateResultContainer = (conversationArray) => {
+  resultContainer.innerHTML = "";
+  for (const message of conversationArray) {
+    const messageDiv = document.createElement("div");
+    const messageParagraph = document.createElement("p");
+
+    messageDiv.appendChild(messageParagraph);
+    messageParagraph.innerText = message.content;
+
+    messageDiv.classList.add(`${message.role}-text`, "message");
+    resultContainer.appendChild(messageDiv);
+  }
+};
+
+// Load Conversation List
+const loadConversationList = () => {
+  const conversationHistory = document.getElementById("conversation-history");
+  conversationHistory.innerHTML = "";
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const conversationName = localStorage.key(i);
+    const newConversationDiv = document.createElement("div");
+    newConversationDiv.classList.add("conversation");
+
+    const convoBtn = document.createElement("button");
+    convoBtn.classList.add("convo-btn");
+    convoBtn.innerText = conversationName;
+    convoBtn.onclick = () => loadConversationFromFile(conversationName);
+    newConversationDiv.appendChild(convoBtn);
+
+    const deleteConvoBtn = document.createElement("button");
+    deleteConvoBtn.classList.add("delete-convo-btn");
+    deleteConvoBtn.innerText = "X";
+    deleteConvoBtn.onclick = () => {
+      localStorage.removeItem(conversationName);
+      loadConversationList();
+    };
+    newConversationDiv.appendChild(deleteConvoBtn);
+
+    const renameConvoBtn = document.createElement("button");
+    renameConvoBtn.classList.add("rename-convo-btn");
+    renameConvoBtn.innerText = "R";
+    renameConvoBtn.onclick = () => {
+      const newName = prompt("Enter new name:");
+      if (newName) {
+        const updatedConversation = JSON.parse(localStorage.getItem(conversationName));
+        updatedConversation.fileName = newName;
+        localStorage.setItem(newName, JSON.stringify(updatedConversation));
+        localStorage.removeItem(conversationName);
+        loadConversationList();
+      }
+    };
+    newConversationDiv.appendChild(renameConvoBtn);
+
+    conversationHistory.appendChild(newConversationDiv);
+  }
+};
+
+const removeHTMLTags = (text) => {
+  return text.replace(/(<([^>]+)>)/gi, "");
+};
+
+// New Conversation Button
+const newConversationBtn = document.getElementById("new-conversation-btn");
+newConversationBtn.onclick = () => {
+  conversation = [];
+  updateResultContainer(conversation);
+};
+
+// Load conversation list on page load
+window.addEventListener("DOMContentLoaded", loadConversationList);
 
 const generate = async () => {
   tokenLimitErrorMessage.style.display = "none";
@@ -56,7 +179,7 @@ const generate = async () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey.value}`,
+        Authorization: `Bearer ${api_key}`,
       },
       body: JSON.stringify({
         model: model.value,
@@ -335,126 +458,126 @@ systemMessageTextArea.addEventListener('input', () => autoGrow(systemMessageText
 
 
 
-const saveConversationsFolder = 'savedConversations';
+// const saveConversationsFolder = 'savedConversations';
 
-// Save conversation
-function saveConversation() {
-  const isNameAlreadyUsed = (name) => {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key.startsWith(`${saveConversationsFolder}/${name}`)) {
-        return true;
-      }
-    }
-    return false;
-  };
+// // Save conversation
+// function saveConversation() {
+//   const isNameAlreadyUsed = (name) => {
+//     for (let i = 0; i < localStorage.length; i++) {
+//       const key = localStorage.key(i);
+//       if (key.startsWith(`${saveConversationsFolder}/${name}`)) {
+//         return true;
+//       }
+//     }
+//     return false;
+//   };
 
-  const generateUniqueName = (filename) => {
-    let newName = filename;
-    let index = 1;
-    while (isNameAlreadyUsed(newName)) {
-      newName = `${filename}-${index}`;
-      index += 1;
-    }
-    return newName;
-  };
+//   const generateUniqueName = (filename) => {
+//     let newName = filename;
+//     let index = 1;
+//     while (isNameAlreadyUsed(newName)) {
+//       newName = `${filename}-${index}`;
+//       index += 1;
+//     }
+//     return newName;
+//   };
 
-  if (conversation.length > 0) {
-    let filename = conversation[0].content.slice(0, 20);
-    if (!isNameAlreadyUsed(filename)) {
-      filename = generateUniqueName(filename);
-    }
+//   if (conversation.length > 0) {
+//     let filename = conversation[0].content.slice(0, 20);
+//     if (!isNameAlreadyUsed(filename)) {
+//       filename = generateUniqueName(filename);
+//     }
     
-    // Save or update the conversation with the filename
-    localStorage.setItem(`${saveConversationsFolder}/${filename}`, JSON.stringify(conversation));
-    console.log(`Conversation saved: ${filename}`);
-    loadSavedConversations();
-  }
-}
+//     // Save or update the conversation with the filename
+//     localStorage.setItem(`${saveConversationsFolder}/${filename}`, JSON.stringify(conversation));
+//     console.log(`Conversation saved: ${filename}`);
+//     loadSavedConversations();
+//   }
+// }
 
-// Load saved conversations
-function loadSavedConversations() {
-  const conversationHistory = document.getElementById('conversation-history');
-  conversationHistory.innerHTML = '';
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key.startsWith(saveConversationsFolder)) {
-      const conversationName = key.split('/')[1];
-      console.log(`Loading conversation: ${conversationName}`);
-      const conversationDiv = document.createElement('div');
-      conversationDiv.className = 'conversation';
+// // Load saved conversations
+// function loadSavedConversations() {
+//   const conversationHistory = document.getElementById('conversation-history');
+//   conversationHistory.innerHTML = '';
+//   for (let i = 0; i < localStorage.length; i++) {
+//     const key = localStorage.key(i);
+//     if (key.startsWith(saveConversationsFolder)) {
+//       const conversationName = key.split('/')[1];
+//       console.log(`Loading conversation: ${conversationName}`);
+//       const conversationDiv = document.createElement('div');
+//       conversationDiv.className = 'conversation';
 
-      const convoBtn = document.createElement('button');
-      convoBtn.className = 'convo-btn';
-      convoBtn.innerText = conversationName;
-      convoBtn.addEventListener('click', () => loadConversation(conversationName));
-      conversationDiv.appendChild(convoBtn);
+//       const convoBtn = document.createElement('button');
+//       convoBtn.className = 'convo-btn';
+//       convoBtn.innerText = conversationName;
+//       convoBtn.addEventListener('click', () => loadConversation(conversationName));
+//       conversationDiv.appendChild(convoBtn);
 
-      const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'delete-convo-btn';
-      deleteBtn.innerText = 'X';
-      deleteBtn.addEventListener('click', () => deleteConversation(conversationName));
-      conversationDiv.appendChild(deleteBtn);
+//       const deleteBtn = document.createElement('button');
+//       deleteBtn.className = 'delete-convo-btn';
+//       deleteBtn.innerText = 'X';
+//       deleteBtn.addEventListener('click', () => deleteConversation(conversationName));
+//       conversationDiv.appendChild(deleteBtn);
 
-      const renameBtn = document.createElement('button');
-      renameBtn.className = 'rename-convo-btn';
-      renameBtn.innerText = 'R';
-      renameBtn.addEventListener('click', () => renameConversation(conversationName));
-      conversationDiv.appendChild(renameBtn);
+//       const renameBtn = document.createElement('button');
+//       renameBtn.className = 'rename-convo-btn';
+//       renameBtn.innerText = 'R';
+//       renameBtn.addEventListener('click', () => renameConversation(conversationName));
+//       conversationDiv.appendChild(renameBtn);
 
-      conversationHistory.appendChild(conversationDiv);
-    }
-  }
-}
+//       conversationHistory.appendChild(conversationDiv);
+//     }
+//   }
+// }
 
-// Load a specific conversation
-function loadConversation(name) {
-  const savedConvo = localStorage.getItem(`${saveConversationsFolder}/${name}`);
-  if (savedConvo) {
-    conversation = JSON.parse(savedConvo);
-    console.log(`Loaded conversation: ${name}`);
-    updateUIWithLoadedConversation();
-  }
-}
+// // Load a specific conversation
+// function loadConversation(name) {
+//   const savedConvo = localStorage.getItem(`${saveConversationsFolder}/${name}`);
+//   if (savedConvo) {
+//     conversation = JSON.parse(savedConvo);
+//     console.log(`Loaded conversation: ${name}`);
+//     updateUIWithLoadedConversation();
+//   }
+// }
 
-// Update UI with the loaded conversation
-function updateUIWithLoadedConversation() {
-  console.log('Updating UI with loaded conversation:', conversation);
-  // clearConvo();
-  resultContainer.innerHTML = "";
-  conversation.forEach(({ role, content }) => {
-    const messageDiv = document.createElement('div');
-    const messageParagraph = document.createElement('p');
-    messageDiv.appendChild(messageParagraph);
-    messageParagraph.innerText = content;
+// // Update UI with the loaded conversation
+// function updateUIWithLoadedConversation() {
+//   console.log('Updating UI with loaded conversation:', conversation);
+//   // clearConvo();
+//   resultContainer.innerHTML = "";
+//   conversation.forEach(({ role, content }) => {
+//     const messageDiv = document.createElement('div');
+//     const messageParagraph = document.createElement('p');
+//     messageDiv.appendChild(messageParagraph);
+//     messageParagraph.innerText = content;
 
-    if (role === 'user') {
-      messageDiv.classList.add('user-text', 'message');
-    } else {
-      messageDiv.classList.add('assistant-text', 'message');
-    }
-    resultContainer.appendChild(messageDiv);
-  });
-}
+//     if (role === 'user') {
+//       messageDiv.classList.add('user-text', 'message');
+//     } else {
+//       messageDiv.classList.add('assistant-text', 'message');
+//     }
+//     resultContainer.appendChild(messageDiv);
+//   });
+// }
 
-// Delete a conversation
-function deleteConversation(name) {
-  if (confirm(`Are you sure you want to delete "${name}"?`)) {
-    localStorage.removeItem(`${saveConversationsFolder}/${name}`);
-    loadSavedConversations();
-  }
-}
+// // Delete a conversation
+// function deleteConversation(name) {
+//   if (confirm(`Are you sure you want to delete "${name}"?`)) {
+//     localStorage.removeItem(`${saveConversationsFolder}/${name}`);
+//     loadSavedConversations();
+//   }
+// }
 
-// Rename a conversation
-function renameConversation(oldName) {
-  const newName = prompt('Enter a new name for the conversation:', oldName);
-  if (newName && newName !== oldName) {
-    const savedConvo = localStorage.getItem(`${saveConversationsFolder}/${oldName}`);
-    localStorage.removeItem(`${saveConversationsFolder}/${oldName}`);
-    localStorage.setItem(`${saveConversationsFolder}/${newName}`, savedConvo);
-    loadSavedConversations();
-  }
-}
+// // Rename a conversation
+// function renameConversation(oldName) {
+//   const newName = prompt('Enter a new name for the conversation:', oldName);
+//   if (newName && newName !== oldName) {
+//     const savedConvo = localStorage.getItem(`${saveConversationsFolder}/${oldName}`);
+//     localStorage.removeItem(`${saveConversationsFolder}/${oldName}`);
+//     localStorage.setItem(`${saveConversationsFolder}/${newName}`, savedConvo);
+//     loadSavedConversations();
+//   }
+// }
 
-document.getElementById("save-convo-btn").addEventListener("click", saveConversation);
-loadSavedConversations();
+// document.getElementById("save-convo-btn").addEventListener("click", saveConversation);
+// loadSavedConversations();

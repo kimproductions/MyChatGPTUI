@@ -192,6 +192,9 @@ strong {
     height: 30px;
     overflow: hidden;
     background-color: rgb(255, 255, 255);
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: hidden;
 }
 
 .convo-btn:hover {
