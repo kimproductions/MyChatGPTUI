@@ -7,8 +7,7 @@
 // Prism.plugins.autoloader.languages_path = 'prism-components/';
 
 const API_URL = "https://api.openai.com/v1/chat/completions";
-const API_KEY = "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";
-
+const apiKey = document.getElementById("api-key");
 const promptInput = document.getElementById("prompt-input");
 const suffixInput = document.getElementById("suffix-input");
 const generateBtn = document.getElementById("generate-btn");
@@ -42,7 +41,7 @@ const generate = async () => {
     conversation.push({ role: "system", content: systemMessageTextArea.value }); //add the system message to the conversation array
     conversation.push({ role: "user", content: promptValue }); //add the user message to the conversation array
     autoGrow(promptInput);
-
+    
     //create a new paragraph for the user message
     const userMessageDiv = document.createElement("div");
     const userMessageParagraph = document.createElement("p");
@@ -57,7 +56,7 @@ const generate = async () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${API_KEY}`,
+        Authorization: `Bearer ${apiKey.value}`,
       },
       body: JSON.stringify({
         model: model.value,
