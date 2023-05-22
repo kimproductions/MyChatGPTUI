@@ -18,20 +18,19 @@ main {
     flex-direction: column;
     margin: auto;
     height: 100%;
+    position: relative;
 }
 
 #middle-section {
-    display:flex;
+    display: flex;
     flex-grow: 1;
     flex-direction: row;
     overflow-y: auto;
 }
 
-#conversation-history {
-}
+#conversation-history {}
 
-#conversation-history-wrapper
-{   
+#conversation-history-wrapper {
     overflow-y: auto;
     width: 15vw;
     padding: 20px;
@@ -42,9 +41,7 @@ main {
     /* padding: px; */
 }
 
-.messages {
-    
-}
+.messages {}
 
 #header {
     display: flex;
@@ -55,12 +52,13 @@ main {
     padding: 10px;
 }
 
-input, select, option {
+input,
+select,
+option {
     font-family: 'Noto Sans';
 }
 
-#settings
-{
+#settings {
     background-color: rgb(204, 204, 204);
     padding: 15px;
     border-radius: 10px;
@@ -68,9 +66,8 @@ input, select, option {
     overflow-y: auto;
 }
 
-#system-message
-{
-    margin:auto;
+#system-message {
+    margin: auto;
     /* height: 100px; */
 }
 
@@ -92,7 +89,7 @@ textarea {
     resize: none;
     /* Disables resizing of textarea */
     /* overflow: auto; */
-    
+
     font-family: 'Noto Sans';
     font-size: 14px;
     border-radius: 4px;
@@ -117,6 +114,33 @@ textarea {
     line-height: 1.5;
 }
 
+.scroll-btn {
+    color: #2d2d2d;
+    /* size: 50px; */
+    margin: 20px 0px;
+}
+
+.scroll-btn:hover {
+    color:rgb(62, 62, 62) 
+}
+
+.scroll-btn:active {
+    color:rgb(125, 125, 125)
+}
+
+.fa-xl {
+    font-size: 1.5rem;
+}   
+
+#scroll-wrapper {
+    position: absolute;
+    bottom: 160px;
+    right: -30px;
+    z-index: 10;
+    display:flex;
+    flex-direction: column;
+}
+
 .messages p {
     /* width: 200px; */
 }
@@ -132,7 +156,7 @@ strong {
     overflow-wrap: break-word;
     /* width: 100%; */
     /* box-sizing: border-box; */
-    
+
 }
 
 .assistant-text {
@@ -141,6 +165,7 @@ strong {
     padding: 20px 40px;
     line-height: 1.7;
 }
+
 .message {
     width: 90vw;
     margin: auto;
@@ -150,6 +175,7 @@ strong {
     .message {
         width: 80vw;
     }
+
 }
 
 @media screen and (min-width: 769px) {
@@ -162,7 +188,9 @@ strong {
     .message {
         width: 50vw;
     }
-} 
+
+
+}
 
 .btn {
     font-family: 'Noto Sans';
@@ -176,15 +204,14 @@ strong {
     display: none;
     color: red;
     /* display: none; */
-    position:absolute;
+    position: absolute;
     top: -30px;
     justify-self: center;
     background-color: aliceblue;
     border-radius: 10px;
 }
 
-.convo-btn
-{
+.convo-btn {
     font-family: 'Noto Sans';
     font-size: 12px;
     border-radius: 10px;
@@ -197,8 +224,7 @@ strong {
     overflow-y: hidden;
 }
 
-#new-conversation-btn
-{
+#new-conversation-btn {
     font-family: 'Noto Sans';
     font-size: 12px;
     border-radius: 10px;
@@ -206,13 +232,14 @@ strong {
     height: 30px;
     background-color: rgb(234, 234, 234);
     width: 100%;
-    
+
     margin: 10px 0px;
 }
 
 .convo-btn:hover {
     background-color: rgb(241, 241, 241);
 }
+
 /* .convo-btn:click {
     background-color: rgb(228, 228, 228);
 } */
@@ -222,7 +249,8 @@ strong {
 }
 
 .outlined {
-outline: 2px solid red; /* Change the outline style as needed */
+    outline: 2px solid red;
+    /* Change the outline style as needed */
 }
 
 .checkbox-div {

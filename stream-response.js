@@ -24,9 +24,21 @@ const systemMessageTextArea = document.getElementById("system-message");
 const shouldHighlightCodeCheckbox = document.getElementById("code-block-checkbox");
 const convoNameLength = 30;
 
+const middleSection = document.getElementById("middle-section");
+const conversationHistoryWrapper = document.getElementById("conversation-history-wrapper");
+
+const scrollDownBtn = document.getElementById("scrolldown-btn");
+const scrollUpBtn = document.getElementById("scrollup-btn");
+
+
 let controller = null; // Store the AbortController instance
 let conversation = []; // Store the conversation history
 let isGenerating; // Store the state of the generator
+
+let isScrolling = false;
+
+
+
 
 fetch('config.json')
   .then(response => {
@@ -37,8 +49,6 @@ fetch('config.json')
   })
   .then(config => {
     // Use the config data
-    console.log(config.apiUrl);
-    console.log(config.apiKey);
     API_KEY = config.API_KEY;
     API_URL = config.API_URL;
   })
@@ -47,7 +57,6 @@ fetch('config.json')
   });
 
 const createFileName = (Conversation) => {
-  console.log('Conversation: ', Conversation);
 
   let fileName = 'Conversation';
   if (Conversation.length > 0) {
@@ -57,7 +66,6 @@ const createFileName = (Conversation) => {
     filename = "Empty Conversation";
   }
 
-  console.log('Initial fileName: ', fileName);
 
   let counter = 1;
   while (localStorage.getItem(fileName)) {
@@ -66,7 +74,6 @@ const createFileName = (Conversation) => {
     counter++;
   }
 
-  console.log('Final fileName: ', fileName);
   return fileName;
 };
 
@@ -81,30 +88,111 @@ const saveConversation = () => {
     conversation.fileName = fileName;
     localStorage.setItem(fileName, JSON.stringify(conversation));
   }
-
   loadConversationList();
+  highlightConvoButton(conversation.fileName);
 };
 
 // Load a conversation
 const loadConversationFromFile = (fileName) => {
   const storedConversation = JSON.parse(localStorage.getItem(fileName));
+  console.log(storedConversation);
   conversation = storedConversation ? storedConversation : [];
   conversation.fileName = fileName; // Add this line to set the fileName property when loading a stored conversation
   updateResultContainer(conversation);
+  highlightConvoButton(fileName);
 };
 
 // Update the result container with the loaded conversation
 const updateResultContainer = (conversationArray) => {
   resultContainer.innerHTML = "";
-  for (const message of conversationArray) {
-    const messageDiv = document.createElement("div");
-    let messageParagraph = document.createElement("p");
-    messageParagraph.innerText = message.content;
-    messageDiv.appendChild(messageParagraph);
-    messageDiv.classList.add(`${message.role}-text`, "message");
-    resultContainer.appendChild(messageDiv);
+  for (let i = 0; i < conversationArray.length; i++) {
+    if (conversationArray[i].role !== "system")
+    {
+      const messageDiv = document.createElement("div");
+      let messageParagraph = document.createElement("p");
+      messageParagraph.innerText = conversationArray[i].content;
+      messageDiv.appendChild(messageParagraph);
+      messageDiv.classList.add(`${conversationArray[i].role}-text`, "message");
+
+      messageDiv.setAttribute("tabindex", "0");
+      messageDiv.setAttribute("data-index", i);
+      messageDiv.addEventListener("click", function () {
+        this.focus();
+        console.log("focusing: " + this);
+      });
+      messageDiv.addEventListener("keydown", function (event) {
+        HandleDeleteKeyEvent(event, messageDiv);
+      });
+
+
+      resultContainer.appendChild(messageDiv);
+    }
+    
   }
 };
+
+function HandleDeleteKeyEvent(event, messageDiv)
+{
+  event.stopPropagation();
+   // Do something specific when up or down arrow key is pressed
+   console.log(event.key);
+   switch (event.key) {
+     case "ArrowLeft":
+       // Left pressed
+       scrollTo(true, false);
+       break;
+     case "ArrowRight":
+       // Right pressed
+       scrollTo(false, false);
+       break;
+     case "ArrowUp":
+       // Up pressed
+       console.log("scrolllgin up");
+       event.preventDefault();
+       messageDiv.previousElementSibling.focus({
+         preventScroll: false
+       });
+       const scrollAmount = messageDiv.previousElementSibling.offsetTop;
+       resultContainer.scrollTop = scrollAmount;
+
+       break;
+     case "ArrowDown":
+       // Down pressed
+
+       event.preventDefault();
+       // messageDiv
+       messageDiv.nextElementSibling.focus({
+         preventScroll: false
+       });
+       const scrollAmount1 = messageDiv.nextElementSibling.offsetTop;
+       resultContainer.scrollTop = scrollAmount1;
+
+       break;
+     case "Backspace":
+       console.log("deleting");
+
+       // Get the index from the messageDiv's data-index attribute
+       const index = parseInt(messageDiv.getAttribute("data-index"));
+
+       // Remove the message from the conversation array
+       conversation.splice(index, 1);
+
+       // Remove the messageDiv from the DOM
+       resultContainer.removeChild(messageDiv);
+
+       // Save the updated conversation
+       saveConversation();
+
+       // After deleting the message, update the data-index attribute of the remaining messages
+       const messageElements = resultContainer.getElementsByClassName("message");
+       for (let i = index; i < messageElements.length; i++) {
+         // Update the data-index attribute with the new index
+         messageElements[i].setAttribute("data-index", i);
+       }
+
+       break;
+   }
+}
 
 // Load Conversation List
 const loadConversationList = () => {
@@ -119,6 +207,7 @@ const loadConversationList = () => {
     const convoBtn = document.createElement("button");
     convoBtn.classList.add("convo-btn");
     convoBtn.innerText = conversationName;
+    convoBtn.id = `convo-btn-${conversationName}`; // Set the id for a convoBtn element
     convoBtn.onclick = () => loadConversationFromFile(conversationName);
     newConversationDiv.appendChild(convoBtn);
 
@@ -154,6 +243,20 @@ const removeHTMLTags = (text) => {
   return text.replace(/(<([^>]+)>)/gi, "");
 };
 
+const highlightConvoButton = (selectedFileName) => {
+  // Clear previous outlines
+  const convoButtons = document.querySelectorAll(".convo-btn");
+  convoButtons.forEach((btn) => {
+    btn.classList.remove("outlined");
+  });
+
+  // Outline currently selected button
+  const selectedButton = document.getElementById(`convo-btn-${selectedFileName}`);
+  if (selectedButton) {
+    selectedButton.classList.add("outlined");
+  }
+};
+
 // New Conversation Button
 const newConversationBtn = document.getElementById("new-conversation-btn");
 newConversationBtn.onclick = () => {
@@ -177,14 +280,19 @@ const generate = async () => {
     isGenerating = true;
     const promptValue = promptInput.value;
     promptInput.value = "";
-    conversation.push({
-      role: "system",
-      content: systemMessageTextArea.value
-    }); //add the system message to the conversation array
+    if (conversation.length === 0 || conversation[0].role !== "system")
+    {
+      conversation.push({
+        role: "system",
+        content: systemMessageTextArea.value
+      }); //add the system message to the conversation array
+    }
+
     conversation.push({
       role: "user",
       content: promptValue
     }); //add the user message to the conversation array
+
     autoGrow(promptInput);
 
     //create a new paragraph for the user message
@@ -193,6 +301,10 @@ const generate = async () => {
     userMessageDiv.appendChild(userMessageParagraph);
     userMessageParagraph.innerText = promptValue;
     userMessageDiv.classList.add("user-text", "message");
+    userMessageDiv.setAttribute("tabindex", "0");
+    userMessageDiv.addEventListener("click", function () {
+      this.focus();
+    });
     resultContainer.appendChild(userMessageDiv);
 
     scrollIfNearBottom();
@@ -243,7 +355,7 @@ const generate = async () => {
     let fullResult = "";
 
 
-    scrollToBottom();
+    scrollTo(false, false);
 
     let isCodeBlock = false;
     let isInlineCodeBlock = false;
@@ -321,7 +433,6 @@ const generate = async () => {
               // hljs.highlightAuto(currentCodeBlock);
               if (currentCodeBlock.innerText.length > 20) {
                 var result = hljs.highlightAuto(currentCodeBlock.innerText);
-                console.log(result);
                 if (result) {
                   currentCodeBlock.innerHTML = currentCodeBlock.innerHTML.replace(/[<]br[/]?[>]/gi, "\n");
                   currentCodeBlock.className = `language-${result.language}`;
@@ -471,8 +582,41 @@ function scrollIfNearBottom() {
   }
 }
 
-function scrollToBottom() {
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+function scrollTo(isScrollUp, isInstant) {
+  if (!isScrolling) {
+    isScrolling = true;
+    // messagesContainer = document.getElementById("messagesContainer");
+    const start = messagesContainer.scrollTop;
+    const end = isScrollUp ?
+      0 :
+      messagesContainer.scrollHeight - messagesContainer.clientHeight;
+    const duration = isInstant ? 0 : 500; // in milliseconds, adjust for desired speed
+    let startTime = null;
+
+    function easeInOutCubic(t) {
+      return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+    }
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function step(currentTime) {
+      if (!startTime) startTime = currentTime;
+      const elapsed = currentTime - startTime;
+      const t = Math.min(elapsed / duration, 1); // clamps t between 0 and 1
+      const easedT = easeInOutCubic(t);
+      messagesContainer.scrollTop = lerp(start, end, easedT);
+
+      if (t < 1) {
+        requestAnimationFrame(step);
+      } else {
+        isScrolling = false;
+      }
+    }
+
+    requestAnimationFrame(step);
+  }
 }
 
 function containsOneBacktick(str) {
@@ -521,3 +665,22 @@ function autoGrow(textarea, maxLines) {
 promptInput.addEventListener('input', () => autoGrow(promptInput, 10));
 suffixInput.addEventListener('input', () => autoGrow(suffixInput, 10));
 systemMessageTextArea.addEventListener('input', () => autoGrow(systemMessageTextArea, 10));
+scrollDownBtn.addEventListener('click', () => scrollTo(false, false));
+scrollUpBtn.addEventListener('click', () => scrollTo(true, false));
+
+
+// middleSection.addEventListener("click", function() { this.focus(); });
+
+middleSection.addEventListener("keydown", function (event) {
+  // Do something specific when up or down arrow key is pressed
+  switch (event.key) {
+    case "ArrowLeft":
+      // Left pressed
+      scrollTo(true, false);
+      break;
+    case "ArrowRight":
+      // Right pressed
+      scrollTo(false, false);
+      break;
+  }
+});

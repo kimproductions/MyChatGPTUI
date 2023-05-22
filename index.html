@@ -9,17 +9,19 @@
   <script type="module" src="stream-response.js"></script>
   <script type="module" src="conversationhistory.js"></script>
 
-  <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="buttons.css" />
+
 
   <link href='https://fonts.googleapis.com/css?family=Noto Sans' rel='stylesheet'>
   <link href="prism.css" rel="stylesheet" />
   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+  <script src="https://kit.fontawesome.com/352085d201.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="buttons.css" />
 </head>
 
 <body>
   <main>
-    <div id="conversation-history-wrapper">
+    <div id="conversation-history-wrapper" tabindex="0">
       <div>
         <button id="new-conversation-btn">
           New Conversation
@@ -40,7 +42,19 @@
       </div>
     </div>
     <div id="chat-interface">
-      <div id="middle-section">
+      <div id="scroll-wrapper">
+        <div>
+          <i id="scrollup-btn" class="fa-solid fa-rotate-180 fa-chevron-down fa-xl scroll-btn"></i>
+        </div>
+        <div>
+          <i id="scrolldown-btn" class="fa-solid fa-chevron-down fa-xl scroll-btn"></i>
+        </div>
+        <!-- <button id="scrolldown-btn">
+          Scroll Down
+        </button> -->
+      </div>
+      <div id="middle-section" tabindex="0">
+        
         <div class="messages" id="messages-container">
           <h1 id="header">Isaac's ChatGPT UI</h1>
           <div id="result-container">
@@ -90,7 +104,7 @@
         <!-- <label class="switch">
           <input type="checkbox" id="" checked>
         </label> -->
-        <input type="checkbox" name="checkbox" id="code-block-checkbox" value="value">
+        <input type="checkbox" name="checkbox" id="code-block-checkbox" value="value" checked>
         <label for="code-block-checkbox">Use Code Highlighting</label>
         <!-- <p>Use code highlighting</p> -->
       </div>
