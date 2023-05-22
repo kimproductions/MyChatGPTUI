@@ -6,9 +6,9 @@
  */
 // Prism.plugins.autoloader.languages_path = 'prism-components/';
 
-const API_URL = "https://api.openai.com/v1/chat/completions";
+let API_URL = null;
+let API_KEY = null;
 const apiKey = document.getElementById("api-key");
-const api_key = "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";
 const promptInput = document.getElementById("prompt-input");
 const suffixInput = document.getElementById("suffix-input");
 const generateBtn = document.getElementById("generate-btn");
@@ -21,10 +21,30 @@ const controls = document.getElementsByClassName("controls")[0];
 const tokenLimitErrorMessage = document.getElementById("token-limit-error");
 const messagesContainer = document.getElementById("messages-container");
 const systemMessageTextArea = document.getElementById("system-message");
+const shouldHighlightCodeCheckbox = document.getElementById("code-block-checkbox");
+const convoNameLength = 30;
 
 let controller = null; // Store the AbortController instance
 let conversation = []; // Store the conversation history
 let isGenerating; // Store the state of the generator
+
+fetch('config.json')
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Failed to load config file');
+    }
+    return response.json();
+  })
+  .then(config => {
+    // Use the config data
+    console.log(config.apiUrl);
+    console.log(config.apiKey);
+    API_KEY = config.API_KEY;
+    API_URL = config.API_URL;
+  })
+  .catch(error => {
+    console.error('Error fetching config:', error);
+  });
 
 const createFileName = (Conversation) => {
   console.log('Conversation: ', Conversation);
@@ -32,10 +52,8 @@ const createFileName = (Conversation) => {
   let fileName = 'Conversation';
   if (Conversation.length > 0) {
     const content = removeHTMLTags(Conversation[1].content);
-    fileName = content.length <= 20 ? content : content.slice(0, 20);
-  }
-  else
-  {
+    fileName = content.length <= convoNameLength ? content : content.slice(0, convoNameLength);
+  } else {
     filename = "Empty Conversation";
   }
 
@@ -44,7 +62,7 @@ const createFileName = (Conversation) => {
   let counter = 1;
   while (localStorage.getItem(fileName)) {
     const newContent = removeHTMLTags(Conversation[1].content);
-    fileName = newContent.length <= 20 ? `${newContent}_${counter}` : `${newContent.slice(0, 20)}_${counter}`;
+    fileName = newContent.length <= convoNameLength ? `${newContent}_${counter}` : `${newContent.slice(0, convoNameLength)}_${counter}`;
     counter++;
   }
 
@@ -80,11 +98,9 @@ const updateResultContainer = (conversationArray) => {
   resultContainer.innerHTML = "";
   for (const message of conversationArray) {
     const messageDiv = document.createElement("div");
-    const messageParagraph = document.createElement("p");
-
-    messageDiv.appendChild(messageParagraph);
+    let messageParagraph = document.createElement("p");
     messageParagraph.innerText = message.content;
-
+    messageDiv.appendChild(messageParagraph);
     messageDiv.classList.add(`${message.role}-text`, "message");
     resultContainer.appendChild(messageDiv);
   }
@@ -161,10 +177,16 @@ const generate = async () => {
     isGenerating = true;
     const promptValue = promptInput.value;
     promptInput.value = "";
-    conversation.push({ role: "system", content: systemMessageTextArea.value }); //add the system message to the conversation array
-    conversation.push({ role: "user", content: promptValue }); //add the user message to the conversation array
+    conversation.push({
+      role: "system",
+      content: systemMessageTextArea.value
+    }); //add the system message to the conversation array
+    conversation.push({
+      role: "user",
+      content: promptValue
+    }); //add the user message to the conversation array
     autoGrow(promptInput);
-    
+
     //create a new paragraph for the user message
     const userMessageDiv = document.createElement("div");
     const userMessageParagraph = document.createElement("p");
@@ -179,15 +201,14 @@ const generate = async () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${api_key}`,
+        Authorization: `Bearer ${API_KEY}`,
       },
       body: JSON.stringify({
         model: model.value,
         messages: conversation.map((message) => ({
           role: message.role,
-          content: message === conversation[conversation.length - 1]
-            ? message.content + "Additional Input: " + suffixInput.value
-            : message.content
+          content: message === conversation[conversation.length - 1] ?
+            message.content + "Additional Input: " + suffixInput.value : message.content
         })),
         max_tokens: 2000,
         stream: true, // For streaming responses
@@ -221,7 +242,7 @@ const generate = async () => {
 
     let fullResult = "";
 
-    
+
     scrollToBottom();
 
     let isCodeBlock = false;
@@ -230,10 +251,13 @@ const generate = async () => {
     let lastTwoContents = [];
     let currentCodeBlock = null;
     let fullResultData = null;
-    
+
 
     while (true) {
-      const { done, value } = await reader.read();
+      const {
+        done,
+        value
+      } = await reader.read();
       if (done) {
         // Handle the end of the stream
         break;
@@ -245,14 +269,20 @@ const generate = async () => {
         .map((line) => line.replace(/^data: /, "").trim()) // Remove the "data: " prefix
         .filter((line) => line !== "" && line !== "[DONE]") // Remove empty lines and "[DONE]"
         .map((line) => JSON.parse(line)); // Parse the JSON string
-      
+
       for (const parsedLine of parsedLines) {
         // console.log(parsedLine);
-        const { choices } = parsedLine;
-        const { delta } = choices[0];
-        const { content } = delta;
+        const {
+          choices
+        } = parsedLine;
+        const {
+          delta
+        } = choices[0];
+        const {
+          content
+        } = delta;
 
-        if (content) {
+        if (content && shouldHighlightCodeCheckbox.checked) {
           console.log(content);
 
           lastTwoContents.push(content);
@@ -261,14 +291,14 @@ const generate = async () => {
 
           }
           let combinedContents = lastTwoContents.join("");
-          
+
           //check last two for backticks
           if (combinedContents.includes("```")) {
             // alert("backticks detected");
             console.log("backticks detected");
             console.log(combinedContents);
             // const lengthToDelete = lastTwoContents[0].length;
-            
+
 
             if (!isCodeBlock) {
               isCodeBlock = true;
@@ -280,64 +310,61 @@ const generate = async () => {
               currentResponseParagraph = document.createElement("p");
               assistantMessageDiv.appendChild(currentResponseParagraph);
             }
-            
+
             //take out the backticks from the lastthreecontents array
             lastTwoContents = lastTwoContents.filter((content) => {
-                return !(content.includes("```") || content.includes("``") || content.includes("`"));
-            });            
-          }
-          else if (isCodeBlock) {
-            if (!content.includes("``"))
-            {
+              return !(content.includes("```") || content.includes("``") || content.includes("`"));
+            });
+          } else if (isCodeBlock) {
+            if (!content.includes("``")) {
               currentCodeBlock.innerText += content;
               // hljs.highlightAuto(currentCodeBlock);
-              if (currentCodeBlock.innerText.length > 20)
-              {
+              if (currentCodeBlock.innerText.length > 20) {
                 var result = hljs.highlightAuto(currentCodeBlock.innerText);
                 console.log(result);
-                if (result)
-                {
-                  currentCodeBlock.innerHTML = currentCodeBlock.innerHTML.replace(/[<]br[/]?[>]/gi,"\n");
+                if (result) {
+                  currentCodeBlock.innerHTML = currentCodeBlock.innerHTML.replace(/[<]br[/]?[>]/gi, "\n");
                   currentCodeBlock.className = `language-${result.language}`;
                   Prism.highlightElement(currentCodeBlock);
                 }
               }
-              
+
               // Prism.highlightElement(currentCodeBlock);
               scrollIfNearBottom();
             }
-          }
-          else if (!isCodeBlock) { //check for single backticks to bold the text.
+          } else if (!isCodeBlock) { //check for single backticks to bold the text.
             // This is not a code block, so just add the content to the paragraph
-            if (containsOneBacktick(content) && !isInlineCodeBlock)
-            {
+            if (containsOneBacktick(content) && !isInlineCodeBlock) {
               isInlineCodeBlock = true;
               currentResponseParagraph.innerHTML += "<strong>";
-            }
-            else
-            {
+            } else {
               isInlineCodeBlock = false;
               currentResponseParagraph.innerHTML += "</strong>";
             }
 
-            if (isInlineCodeBlock)
-            {
-            }
+            if (isInlineCodeBlock) {}
             currentResponseParagraph.innerHTML += content;
-
             // currentParagraph.innerText += content;
-              
-            fullResult += content;
-            
-            requestAnimationFrame(() => {
-              requestAnimationFrame(scrollIfNearBottom);
-            });
           }
+
+        } else if (content && !shouldHighlightCodeCheckbox.checked) {
+          currentResponseParagraph.innerText += content;
         }
+
+        if (content) {
+          fullResult += content;
+          requestAnimationFrame(() => {
+            requestAnimationFrame(scrollIfNearBottom);
+          });
+        }
+
       }
     }
 
-    conversation.push({ role: "assistant", content: fullResult });
+    conversation.push({
+      role: "assistant",
+      content: fullResult
+    });
     //log the conversation array
     console.log(conversation);
     isGenerating = false;
@@ -360,6 +387,55 @@ const generate = async () => {
   }
 };
 
+function createFencedCodeDiv(divElement) {
+  // Extract existing text content
+  const content = divElement.innerText;
+
+  // Split text content by lines
+  const lines = content.split('\n');
+
+  // Create a new div element
+  const newDiv = document.createElement('div');
+
+  // Loop through the lines and process backtick-blocks and non-code text
+  let isInCodeBlock = false;
+  let codeLanguage = null;
+  let codeContent = null;
+
+  lines.forEach((line) => {
+    if (line.startsWith('```')) {
+      if (isInCodeBlock) {
+        isInCodeBlock = false;
+
+        // Create <pre><code> element with the code content
+        const pre = document.createElement('pre');
+        const code = document.createElement('code');
+        code.classList.add(codeLanguage);
+        code.innerText = codeContent;
+        pre.appendChild(code);
+        newDiv.appendChild(pre);
+
+        codeLanguage = null;
+        codeContent = null;
+      } else {
+        isInCodeBlock = true;
+        codeLanguage = line.substring(3); // Extract language after backticks, if specified
+        codeContent = '';
+      }
+    } else if (isInCodeBlock) {
+      codeContent += line + '\n';
+    } else {
+      // For non-code lines, create a paragraph element
+      const p = document.createElement('p');
+      p.innerText = line;
+      newDiv.appendChild(p);
+    }
+  });
+
+  // Append new div element to the DOM
+  return newDiv;
+}
+
 function createNewCodeBlock(textDiv) {
   const pre = document.createElement("pre");
   const code = document.createElement("code");
@@ -379,11 +455,11 @@ function arrayIncludes(array, target) {
 }
 
 function includesAny(array, targetStrings) {
-    return targetStrings.some(target => array.some(element => element.includes(target)));
+  return targetStrings.some(target => array.some(element => element.includes(target)));
 }
 
 function hasBackticks(str) {
-    return str.includes('`');
+  return str.includes('`');
 }
 
 function scrollIfNearBottom() {
@@ -395,13 +471,12 @@ function scrollIfNearBottom() {
   }
 }
 
-function scrollToBottom()
-{
+function scrollToBottom() {
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
 function containsOneBacktick(str) {
-  const regex = /^[^]*$/;  // regex to match one backtick surrounding any number of characters that are not a backtick
+  const regex = /^[^]*$/; // regex to match one backtick surrounding any number of characters that are not a backtick
   return regex.test(str);
 }
 
@@ -425,14 +500,7 @@ promptInput.addEventListener("keyup", (event) => {
 generateBtn.addEventListener("click", generate);
 stopBtn.addEventListener("click", stop);
 
-promptInput.addEventListener("input", () => {
-  if (promptInput.value) {
-    generateBtn.disabled = false;
-  } else {
-    generateBtn.disabled = true;
-  }
-})
-generateBtn.disabled = true;
+generateBtn.disabled = false;
 
 clearBtn.addEventListener("click", clearConvo);
 
@@ -442,9 +510,9 @@ function clearConvo() {
 }
 
 function autoGrow(textarea, maxLines) {
-  const lineHeight = 1.2 * 16;  // Assuming a line-height of 1.2em and a font-size of 16px
+  const lineHeight = 1.2 * 16; // Assuming a line-height of 1.2em and a font-size of 16px
   const maxHeight = lineHeight * maxLines;
-  textarea.style.height = 'auto';  // Temporarily reduce the height to calculate the scrollHeight
+  textarea.style.height = 'auto'; // Temporarily reduce the height to calculate the scrollHeight
   const newHeight = Math.min(textarea.scrollHeight, maxHeight);
   textarea.style.height = newHeight + 'px';
   textarea.style.overflowY = newHeight < textarea.scrollHeight ? 'scroll' : 'hidden';
@@ -453,131 +521,3 @@ function autoGrow(textarea, maxLines) {
 promptInput.addEventListener('input', () => autoGrow(promptInput, 10));
 suffixInput.addEventListener('input', () => autoGrow(suffixInput, 10));
 systemMessageTextArea.addEventListener('input', () => autoGrow(systemMessageTextArea, 10));
-
-
-
-
-
-// const saveConversationsFolder = 'savedConversations';
-
-// // Save conversation
-// function saveConversation() {
-//   const isNameAlreadyUsed = (name) => {
-//     for (let i = 0; i < localStorage.length; i++) {
-//       const key = localStorage.key(i);
-//       if (key.startsWith(`${saveConversationsFolder}/${name}`)) {
-//         return true;
-//       }
-//     }
-//     return false;
-//   };
-
-//   const generateUniqueName = (filename) => {
-//     let newName = filename;
-//     let index = 1;
-//     while (isNameAlreadyUsed(newName)) {
-//       newName = `${filename}-${index}`;
-//       index += 1;
-//     }
-//     return newName;
-//   };
-
-//   if (conversation.length > 0) {
-//     let filename = conversation[0].content.slice(0, 20);
-//     if (!isNameAlreadyUsed(filename)) {
-//       filename = generateUniqueName(filename);
-//     }
-    
-//     // Save or update the conversation with the filename
-//     localStorage.setItem(`${saveConversationsFolder}/${filename}`, JSON.stringify(conversation));
-//     console.log(`Conversation saved: ${filename}`);
-//     loadSavedConversations();
-//   }
-// }
-
-// // Load saved conversations
-// function loadSavedConversations() {
-//   const conversationHistory = document.getElementById('conversation-history');
-//   conversationHistory.innerHTML = '';
-//   for (let i = 0; i < localStorage.length; i++) {
-//     const key = localStorage.key(i);
-//     if (key.startsWith(saveConversationsFolder)) {
-//       const conversationName = key.split('/')[1];
-//       console.log(`Loading conversation: ${conversationName}`);
-//       const conversationDiv = document.createElement('div');
-//       conversationDiv.className = 'conversation';
-
-//       const convoBtn = document.createElement('button');
-//       convoBtn.className = 'convo-btn';
-//       convoBtn.innerText = conversationName;
-//       convoBtn.addEventListener('click', () => loadConversation(conversationName));
-//       conversationDiv.appendChild(convoBtn);
-
-//       const deleteBtn = document.createElement('button');
-//       deleteBtn.className = 'delete-convo-btn';
-//       deleteBtn.innerText = 'X';
-//       deleteBtn.addEventListener('click', () => deleteConversation(conversationName));
-//       conversationDiv.appendChild(deleteBtn);
-
-//       const renameBtn = document.createElement('button');
-//       renameBtn.className = 'rename-convo-btn';
-//       renameBtn.innerText = 'R';
-//       renameBtn.addEventListener('click', () => renameConversation(conversationName));
-//       conversationDiv.appendChild(renameBtn);
-
-//       conversationHistory.appendChild(conversationDiv);
-//     }
-//   }
-// }
-
-// // Load a specific conversation
-// function loadConversation(name) {
-//   const savedConvo = localStorage.getItem(`${saveConversationsFolder}/${name}`);
-//   if (savedConvo) {
-//     conversation = JSON.parse(savedConvo);
-//     console.log(`Loaded conversation: ${name}`);
-//     updateUIWithLoadedConversation();
-//   }
-// }
-
-// // Update UI with the loaded conversation
-// function updateUIWithLoadedConversation() {
-//   console.log('Updating UI with loaded conversation:', conversation);
-//   // clearConvo();
-//   resultContainer.innerHTML = "";
-//   conversation.forEach(({ role, content }) => {
-//     const messageDiv = document.createElement('div');
-//     const messageParagraph = document.createElement('p');
-//     messageDiv.appendChild(messageParagraph);
-//     messageParagraph.innerText = content;
-
-//     if (role === 'user') {
-//       messageDiv.classList.add('user-text', 'message');
-//     } else {
-//       messageDiv.classList.add('assistant-text', 'message');
-//     }
-//     resultContainer.appendChild(messageDiv);
-//   });
-// }
-
-// // Delete a conversation
-// function deleteConversation(name) {
-//   if (confirm(`Are you sure you want to delete "${name}"?`)) {
-//     localStorage.removeItem(`${saveConversationsFolder}/${name}`);
-//     loadSavedConversations();
-//   }
-// }
-
-// // Rename a conversation
-// function renameConversation(oldName) {
-//   const newName = prompt('Enter a new name for the conversation:', oldName);
-//   if (newName && newName !== oldName) {
-//     const savedConvo = localStorage.getItem(`${saveConversationsFolder}/${oldName}`);
-//     localStorage.removeItem(`${saveConversationsFolder}/${oldName}`);
-//     localStorage.setItem(`${saveConversationsFolder}/${newName}`, savedConvo);
-//     loadSavedConversations();
-//   }
-// }
-
-// document.getElementById("save-convo-btn").addEventListener("click", saveConversation);
-// loadSavedConversations();

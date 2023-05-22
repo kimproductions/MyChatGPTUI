@@ -33,13 +33,13 @@ main {
 #conversation-history-wrapper
 {   
     overflow-y: auto;
-    width: 10vw;
+    width: 15vw;
     padding: 20px;
     background-color: rgb(204, 204, 204);
 }
 
 .conversation {
-    padding: 10px;
+    /* padding: px; */
 }
 
 .messages {
@@ -186,10 +186,10 @@ strong {
 .convo-btn
 {
     font-family: 'Noto Sans';
-    font-size: 14px;
+    font-size: 12px;
     border-radius: 10px;
     border: none;
-    height: 30px;
+    height: 2em;
     overflow: hidden;
     background-color: rgb(255, 255, 255);
     width: 100%;
@@ -197,9 +197,35 @@ strong {
     overflow-y: hidden;
 }
 
+#new-conversation-btn
+{
+    font-family: 'Noto Sans';
+    font-size: 12px;
+    border-radius: 10px;
+    border: solid;
+    height: 30px;
+    background-color: rgb(234, 234, 234);
+    width: 100%;
+    
+    margin: 10px 0px;
+}
+
 .convo-btn:hover {
     background-color: rgb(241, 241, 241);
 }
-.convo-btn:click {
+/* .convo-btn:click {
     background-color: rgb(228, 228, 228);
+} */
+
+.convo-btn:active {
+    background-color: rgb(206, 206, 206);
+}
+
+.outlined {
+outline: 2px solid red; /* Change the outline style as needed */
+}
+
+.checkbox-div {
+    display: flex;
+    flex-direction: row;
 }
