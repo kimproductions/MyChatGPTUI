@@ -151,24 +151,83 @@ strong {
 }
 
 .user-text {
-    padding: 20px 40px;
     background-color: rgb(240, 240, 240);
     overflow-wrap: break-word;
     /* width: 100%; */
     /* box-sizing: border-box; */
-
 }
+
+.message-wrapper {
+    display:flex;
+    flex-direction: row;
+    padding: 0px;
+}
+
+.delete-message-btn {
+    display: flex;
+    margin-left: auto;
+    border: none;
+    background-color: #cccccc;
+}
+
+.delete-message-btn:hover {
+    background-color: #aa5959;
+}
+.delete-message-btn:active {
+    background-color: #5a0000;
+}
+
+.edit-textarea {
+    width: 100%;
+}
+
+.edit-message-btn {
+    display: flex;
+    margin-left: auto;
+    border: none;
+    background-color: #cccccc;
+}
+
+.edit-message-btn:hover {
+    background-color: #59aa6b;
+}
+
+.edit-message-btn:active {
+    background-color: #155a00;
+}
+
+
+.generate-textarea-btn {
+    display: flex;
+    /* margin-left: auto; */
+    height: 10px;
+    width: 100%;
+    border: none;
+    background-color: #cccccc;
+}
+
+.generate-textarea-btn:hover {
+    background-color: #597faa;
+}
+
+.generate-textarea-btn:active {
+    background-color: #00245a;
+}
+
 
 .assistant-text {
     background-color: rgb(230, 230, 230);
     overflow-wrap: break-word;
-    padding: 20px 40px;
     line-height: 1.7;
 }
 
 .message {
     width: 90vw;
     margin: auto;
+    display: flex;
+    flex-direction: row;    
+    padding: 20px 40px;
+    /* position: relative; */
 }
 
 @media screen and (min-width: 601px) {
@@ -199,7 +258,7 @@ strong {
     border: none;
     height: 30px;
 }
-
+    
 #token-limit-error {
     display: none;
     color: red;
@@ -232,17 +291,12 @@ strong {
     height: 30px;
     background-color: rgb(234, 234, 234);
     width: 100%;
-
     margin: 10px 0px;
 }
 
 .convo-btn:hover {
     background-color: rgb(241, 241, 241);
 }
-
-/* .convo-btn:click {
-    background-color: rgb(228, 228, 228);
-} */
 
 .convo-btn:active {
     background-color: rgb(206, 206, 206);
