@@ -24,215 +24,194 @@ let conversation = []; // Store the conversation history
 let isGenerating; // Store the state of the generator
 let fullResult = "";
 
-
 fetchConfig();
 
 // Load conversation list on page load
 window.addEventListener("DOMContentLoaded", () => loadConversationList(conversation));
 
 const generate = async () => {
-  tokenLimitErrorMessage.style.display = "none";
-  // Disable the generate button and enable the stop button
-  generateBtn.disabled = true;
-  stopBtn.disabled = false;
   // Create a new AbortController instance
   controller = new AbortController();
   const signal = controller.signal;
 
   try {
-    isGenerating = true;
     const promptValue = promptInput.value;
-    promptInput.value = "";
-    if (conversation.length === 0 || conversation[0].role !== "system") {
-      conversation.push({
-        role: "system",
-        content: ""
-      }); //add the system message to the conversation array
-    }
-    //always add the system message when we run generate
-    conversation[0].content = systemMessageTextArea.value;
-
-    conversation.push({
-      role: "user",
-      content: promptValue
-    }); //add the user message to the conversation array
-    autoGrow(promptInput);
-
+    SetVariablesOnGenerate();
+    UpdateConversationWithSystemAndUserMessage(promptValue, systemMessageTextArea.value); 
+    autoGrow(promptInput); //collapse promptinput ui
     CreateMessageElement("user", promptValue, conversation);
-
     scrollIfNearBottom();
+    
     // Fetch the response from the OpenAI API with the signal from AbortController
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: model.value,
-        messages: conversation.map((message) => ({
-          role: message.role,
-          content: message === conversation[conversation.length - 1] ?
-            message.content + "Additional Input: " + suffixInput.value : message.content
-        })),
-        max_tokens: 2000,
-        stream: true, // For streaming responses
-      }),
-      signal, // Pass the signal to the fetch request
-    });
-
-    //check the server response, if it's 400 
-    if (!response.ok) {
-      if (response.status === 400) {
-        // Handle the case when the server returns a status of 400
-        console.log("Server returned a status of 400, most likely over the token limit");
-        tokenLimitErrorMessage.style.display = "block";
-        // You can add more specific error handling code here, if needed
-        throw new Error("Server returned a status of 400");
-      } else {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+    const response = await fetchResponseFromApi(signal);
+    if (!validateResponse(response)) {
+      throw new Error("Invalid Response");
     }
-
-    // Read the response as a stream of data
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder("utf-8");
 
     //get the message div from 
-    const messageWrapper = CreateMessageElement("assistant", "", conversation);
+    const messageDiv = CreateMessageElement("assistant", "", conversation);
     
-    //the assistant message div is the first child element. Not ideal, but it works
-    let assistantMessageDiv = messageWrapper.firstElementChild;
-
     let currentResponseParagraph = document.createElement("p");
-    assistantMessageDiv.appendChild(currentResponseParagraph);
-    
+    messageDiv.appendChild(currentResponseParagraph);
 
     fullResult = "";
     scrollTo(false, false);
 
     let isCodeBlock = false;
     let isInlineCodeBlock = false;
-
     let lastTwoContents = [];
     let currentCodeBlock = null;
     let fullResultData = null;
+    let isHighlighted = false;
 
+    // Read the response as a stream of data
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
 
     while (true) {
-      const {
-        done,
-        value
-      } = await reader.read();
+      const { done, value } = await reader.read();
       if (done) {
         // Handle the end of the stream
         break;
       }
       // Massage and parse the chunk of data
       const chunk = decoder.decode(value);
-      const lines = chunk.split("\n");
-      const parsedLines = lines
-        .map((line) => line.replace(/^data: /, "").trim()) // Remove the "data: " prefix
-        .filter((line) => line !== "" && line !== "[DONE]") // Remove empty lines and "[DONE]"
-        .map((line) => JSON.parse(line)); // Parse the JSON string
+      const parsedLines = processLines(chunk);
 
       for (const parsedLine of parsedLines) {
         const { choices } = parsedLine;
         const { delta } = choices[0];
         const { content } = delta;
 
-        if (content && shouldHighlightCodeCheckbox.checked) {
+        if (content && shouldHighlightCodeCheckbox.checked) { //
           console.log(content);
-
           lastTwoContents.push(content);
-          if (lastTwoContents.length > 2) {
-            lastTwoContents.shift();
-          }
-          let combinedContents = lastTwoContents.join("");
-
+          
           //check last two for backticks
-          if (combinedContents.includes("```")) {
-            console.log("backticks detected");
-            console.log(combinedContents);
-
+          if (doesLastTwoContentsContainThreeBackticks(lastTwoContents)) {
             if (!isCodeBlock) {
               isCodeBlock = true;
-              currentCodeBlock = createNewCodeBlock(assistantMessageDiv);
+              isHighlighted = false;
+              currentCodeBlock = createNewCodeBlock(messageDiv);
               scrollIfNearBottom();
             } else {
               isCodeBlock = false;
               currentResponseParagraph = document.createElement("p");
-              assistantMessageDiv.appendChild(currentResponseParagraph);
+              messageDiv.appendChild(currentResponseParagraph);
             }
-
+            
             //take out the backticks from the lastthreecontents array
             lastTwoContents = lastTwoContents.filter((content) => {
               return !(content.includes("```") || content.includes("``") || content.includes("`"));
             });
           } else if (isCodeBlock) {
             if (!content.includes("``")) {
-              currentCodeBlock.innerText += content;
-              if (currentCodeBlock.innerText.length > 20) {
-                var result = hljs.highlightAuto(currentCodeBlock.innerText);
-                if (result) {
-                  currentCodeBlock.innerHTML = currentCodeBlock.innerHTML.replace(/[<]br[/]?[>]/gi, "\n");
-                  currentCodeBlock.className = `language-${result.language}`;
-                  Prism.highlightElement(currentCodeBlock);
-                }
+              if (!isHighlighted && content) { //take the first content and use it as the language
+                currentCodeBlock.className = `language-${content}`;
+                // Prism.highlightElement(currentCodeBlock
+                isHighlighted = true;
               }
-
+              else {
+                currentCodeBlock.innerText += content;
+                currentCodeBlock.innerHTML = currentCodeBlock.innerHTML.replace(/[<]br[/]?[>]/gi, "\n");
+                Prism.highlightElement(currentCodeBlock);
+              }
               scrollIfNearBottom();
             }
-          } else if (!isCodeBlock) { //check for single backticks to bold the text.
-            // // This is not a code block, so just add the content to the paragraph
-            // if (containsOneBacktick(content) && !isInlineCodeBlock) {
-            //   isInlineCodeBlock = true;
-            //   currentResponseParagraph.innerHTML += "<strong>";
-            // } else {
-            //   isInlineCodeBlock = false;
-            //   currentResponseParagraph.innerHTML += "</strong>";
-            // }
-
+          } else if (!isCodeBlock) { 
             currentResponseParagraph.innerText += content;
           }
-
         } else if (content && !shouldHighlightCodeCheckbox.checked) {
           currentResponseParagraph.innerText += content;
-        }
-
-        if (content) {
+        } if (content) {
           fullResult += content;
           scrollIfNearBottom();
         }
       }
     }
-
   } catch (error) {
     // Handle fetch request errors
     if (signal.aborted) {
       console.log("aboorttt");
-      // resultText.innerText = "Request aborted.";
     } else {
       console.error("Error:", error);
     }
   } finally {
-    
     conversation.push({
       role: "assistant",
       content: fullResult
     });
-    //log the conversation array
-    console.log(conversation);
-    // Prism.highlightAll();
-    // Enable the generate button and disable the stop button
-    generateBtn.disabled = false;
-    stopBtn.disabled = true;
-    controller = null; // Reset the AbortController instance
-    isGenerating = false;
+    SetVariablesOnStop();
     saveConversation(conversation);
   }
 };
 
+function processLines(chunk) {
+  const lines = chunk.split("\n");
+  return lines
+    .map((line) => line.replace(/^data: /, "").trim()) // Remove the "data: " prefix
+    .filter((line) => line !== "" && line !== "[DONE]") // Remove empty lines and "[DONE]"
+    .map((line) => JSON.parse(line)); // Parse the JSON string
+}
+
+function doesLastTwoContentsContainThreeBackticks(lastTwoContents)
+{ 
+  if (lastTwoContents.length > 2) {
+    lastTwoContents.shift();
+  }
+  let combinedContents = lastTwoContents.join("");
+  return combinedContents.includes("```");
+}
+
+async function fetchResponseFromApi(signal) {
+  return await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: model.value,
+      messages: conversation.map((message) => ({
+        role: message.role,
+        content: message === conversation[conversation.length - 1] ?
+          message.content + "Additional Input: " + suffixInput.value : message.content
+      })),
+      max_tokens: 2000,
+      stream: true, // For streaming responses
+    }),
+    signal, // Pass the signal to the fetch request
+  });
+}
+
+function validateResponse(response) {
+  if (!response.ok) {
+    if (response.status === 400) {
+      console.log("Server returned a status of 400, most likely over the token limit");
+      tokenLimitErrorMessage.style.display = "block";
+      throw new Error("Server returned a status of 400");
+    } else {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+  }
+  return true;
+}
+
+function UpdateConversationWithSystemAndUserMessage(promptValue, systemMessage)
+{
+  if (conversation.length === 0 || conversation[0].role !== "system") {
+    conversation.unshift({
+      role: "system",
+      content: ""
+    }); //add the system message to the conversation array
+  }
+  //always update the system message when we run generate
+  conversation[0].content = systemMessage;
+  conversation.push({
+    role: "user",
+    content: promptValue
+  }); //add the user message to the conversation array
+}
 
 function containsOneBacktick(str) {
   const regex = /^[^]*$/; // regex to match one backtick surrounding any number of characters that are not a backtick
@@ -254,6 +233,7 @@ document.getElementById("token-range").addEventListener("input", function (event
 
 promptInput.addEventListener("keyup", (event) => {
   if (event.key === "Enter" && !isGenerating && !event.shiftKey) {
+    event.preventDefault();
     generate();
   }
 });
@@ -286,3 +266,23 @@ newConversationBtn.onclick = () => {
   conversation = [];
   updateResultContainer(conversation);
 };
+
+function SetVariablesOnGenerate()
+{
+  tokenLimitErrorMessage.style.display = "none";
+  generateBtn.disabled = true;
+  stopBtn.disabled = false;
+  isGenerating = true;
+  promptInput.value = "";
+}
+
+function SetVariablesOnStop()
+{
+  //log the conversation array
+  console.log(conversation);
+  // Enable the generate button and disable the stop button
+  generateBtn.disabled = false;
+  stopBtn.disabled = true;
+  controller = null; // Reset the AbortController instance
+  isGenerating = false;
+}
