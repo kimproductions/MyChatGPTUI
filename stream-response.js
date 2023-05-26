@@ -19,10 +19,7 @@ const tokenLimitErrorMessage = document.getElementById("token-limit-error");
 const systemMessageTextArea = document.getElementById("system-message");
 const shouldHighlightCodeCheckbox = document.getElementById("code-block-checkbox");
 
-
 let controller = null; // Store the AbortController instance
-// let conversation = []; // Store the conversation history
-// let fullResult = "";
 
 let activeConversationIndex = 0;
 let conversationList = [[]];
@@ -37,14 +34,22 @@ const generate = async () => {
   // Create a new AbortController instance
   controller = new AbortController();
   const signal = controller.signal;
+  const conversation = conversationList[activeConversationIndex];
+  const conversationIndex = activeConversationIndex;
+
+  const conversationButtonsDiv = document.querySelector(
+    `.conversation-btn-wrapper[data-convo-index="${conversationIndex}"]`
+  );
+  let convoBtn = conversationButtonsDiv.querySelector('.convo-btn');
+  console.log(convoBtn);
 
   try {
     const promptValue = promptInput.value;
-    const conversation = conversationList[activeConversationIndex];
-    const conversationIndex = activeConversationIndex;
     const conversationDiv = document.querySelector(
       `.conversation[data-convo-index="${conversationIndex}"]`
     );
+    
+    
     SetVariablesOnGenerate();
     UpdateConversationWithSystemAndUserMessage(promptValue, systemMessageTextArea.value, conversation); 
     autoGrow(promptInput); //collapse promptinput ui
@@ -136,6 +141,7 @@ const generate = async () => {
         } if (content) {
           fullResult += content;
           scrollIfNearBottom();
+          showLoadingSign(conversationIndex);
         }
       }
     }
@@ -143,6 +149,8 @@ const generate = async () => {
       role: "assistant",
       content: fullResult
     });
+
+    // run function that makes an api call and changes convoBtn's text to the result of that call.
 
     console.log(conversation);
     console.log(conversationList);
@@ -154,9 +162,46 @@ const generate = async () => {
       console.error("Error:", error);
     }
   } finally {
-    
+    let lastcontent = conversation[conversation.length-1].content;
+    console.log("content: " + lastcontent)
+    hideLoadingSign(conversationIndex);
     SetVariablesOnStop();
+    convoBtn.innerText = await generateResponse("Summarize the following in 40 characters or less: " + lastcontent);
     // saveConversation(conversation);
+  }
+};
+
+const generateResponse = async (promptValue) => {
+  let controller = new AbortController();
+  const signal = controller.signal;
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: promptValue }],
+        max_tokens: 100,
+      }),
+      signal, // Pass the signal to the fetch request
+    });
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  } catch (error) {
+    if (signal.aborted) {
+      console.error("Request aborted");
+    } else {
+      console.error("Error:", error);
+    }
+    return ""; // Return an empty string if an error occurs
+  } finally {
+    // Enable the generate button and disable the stop button
+
+    controller = null; // Reset the AbortController instance
   }
 };
 
@@ -173,7 +218,7 @@ function setActiveConversation (index) {
   const conversationDiv = document.querySelector(
     `.conversation[data-convo-index="${index}"]`
   );
-  console.log(conversationDiv);
+  // console.log(conversationDiv);
   conversationDiv.style.display = "block";
   scrollTo(false, false);
   // scrollToPosition(scrollTop)
@@ -185,16 +230,15 @@ newConversationBtn.onclick = () => {
   // Add new conversation to the conversationList.
   conversationList.push([]);
   console.log(conversationList);
-  const index = conversationList.length - 1;
   // Set new conversation as the active one.
   // Create and add the conversation div under the conversation-history.
   const conversationHistory = document.getElementById("conversation-history");
   conversationHistory.appendChild(
-    createConversationBtnsElement(index)
+    createConversationBtnsElement(conversationList.length - 1)
   );
-  createConversationElement(index);
+  createConversationElement(conversationList.length - 1);
   console.log("createConversation");
-  setActiveConversation(index);
+  setActiveConversation(conversationList.length - 1);
 };
 
 function initializeConversationList()
@@ -228,24 +272,34 @@ function createConversationBtnsElement(index) {
   const convoBtn = document.createElement("button");
   convoBtn.classList.add("convo-btn");
   convoBtn.innerHTML = "Conversation";
-  convoBtn.addEventListener("click", () => {
-    setActiveConversation(index);
-  });
 
   const deleteConvoBtn = document.createElement("button");
   deleteConvoBtn.classList.add("delete-convo-btn");
   deleteConvoBtn.innerHTML = "X";
-  deleteConvoBtn.addEventListener("click", () => {
-    deleteConversation(index);
-  });
 
   const renameConvoBtn = document.createElement("button");
   renameConvoBtn.classList.add("rename-convo-btn");
   renameConvoBtn.innerHTML = "R";
 
+  const loadingSign = document.createElement("div");
+  loadingSign.classList.add("loading-sign");
+  loadingSign.style.display = "none";
+
+  conversationButtonsDiv.appendChild(loadingSign);
   conversationButtonsDiv.appendChild(convoBtn);
   conversationButtonsDiv.appendChild(deleteConvoBtn);
   conversationButtonsDiv.appendChild(renameConvoBtn);
+
+  convoBtn.addEventListener("click", (event) => {
+    const currentIndex = parseInt(event.currentTarget.parentElement.getAttribute("data-convo-index"));
+    setActiveConversation(currentIndex);
+  });
+
+  deleteConvoBtn.addEventListener("click", (event) => {
+    const currentIndex = parseInt(event.currentTarget.parentElement.getAttribute("data-convo-index"));
+    deleteConversation(currentIndex);
+    updateConversationsDataIndex();
+  });
 
   conversationButtonsDiv.setAttribute("data-convo-index", index);
 
@@ -257,30 +311,57 @@ function updateConversationsDataIndex() {
   conversationBtnDivs.forEach((convoDiv, index) => {
     convoDiv.setAttribute("data-convo-index", index);
   });
+
+  const conversationDivs = document.querySelectorAll(".conversation");
+  conversationDivs.forEach((convoDiv, index) => {
+    convoDiv.setAttribute("data-convo-index", index);
+  });
 }
 
-function deleteConversation(index) {
-  conversationList.splice(index, 1);
+function deleteConversation(currentIndex) {
+  conversationList.splice(currentIndex, 1);
+
+  // Remove the conversation and conversation button elements.
   const conversationBtnDivToBeRemoved = document.querySelector(
-    `.conversation-btn-wrapper[data-convo-index="${index}"]`
+    `.conversation-btn-wrapper[data-convo-index="${currentIndex}"]`
   );
   conversationBtnDivToBeRemoved.remove();
-  updateConversationsDataIndex();
 
-  if (index === activeConversationIndex) {
-    if (index > 0) {
-      setActiveConversation(index - 1);
+  const conversationDivToBeRemoved = document.querySelector(
+    `.conversation[data-convo-index="${currentIndex}"]`
+  );
+  conversationDivToBeRemoved.remove();
+
+  console.log("deleting " + currentIndex);
+
+  // Setting the active conversation after deletion.
+  if (currentIndex === activeConversationIndex) {
+    if (currentIndex > 0) {
+      setActiveConversation(currentIndex - 1);
     } else if (conversationList.length > 0) {
       setActiveConversation(0);
     } else {
       // resultContainer.innerHTML = "";
       console.log("resultcontainer empty function");
     }
-  } else if (index < activeConversationIndex) {
+  } else if (currentIndex < activeConversationIndex) {
     activeConversationIndex--;
   }
 }
 
+const showLoadingSign = (conversationIndex) => {
+  const loadingSign = document.querySelector(`.conversation-btn-wrapper[data-convo-index="${conversationIndex}"] .loading-sign`);
+  loadingSign.style.display = 'block';
+}
+
+// Hide the loading sign
+const hideLoadingSign = (conversationIndex) => {
+  const loadingSign = document.querySelector(`.conversation-btn-wrapper[data-convo-index="${conversationIndex}"] .loading-sign`);
+  loadingSign.style.display = 'none';
+  console.log("hiding");
+  console.log("conversationIndex");
+
+}
 
 function UpdateConversationWithSystemAndUserMessage(promptValue, systemMessage, conversation) {
   if (conversation.length === 0 || conversation[0].role !== "system") {
@@ -296,9 +377,6 @@ function UpdateConversationWithSystemAndUserMessage(promptValue, systemMessage, 
     content: promptValue
   }); //add the user message to the conversation array
 }
-
-
-
 
 function processLines(chunk) {
   const lines = chunk.split("\n");
@@ -369,7 +447,7 @@ document.getElementById("token-range").addEventListener("input", function (event
   this.nextElementSibling.value = this.value;
 });
 
-promptInput.addEventListener("keyup", (event) => {
+promptInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();
     generate();
@@ -398,24 +476,18 @@ function autoGrow(textarea, maxLines) {
   textarea.style.overflowY = newHeight < textarea.scrollHeight ? 'scroll' : 'hidden';
 }
 
-
-
 function SetVariablesOnGenerate()
 {
   tokenLimitErrorMessage.style.display = "none";
   generateBtn.disabled = true;
   stopBtn.disabled = false;
-  // isGenerating = true;
   promptInput.value = "";
 }
 
 function SetVariablesOnStop()
 {
-  //log the conversation array
-  // console.log(conversation);
-  // Enable the generate button and disable the stop button
+
   generateBtn.disabled = false;
   stopBtn.disabled = true;
   controller = null; // Reset the AbortController instance
-  // isGenerating = false;
 }

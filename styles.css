@@ -28,7 +28,10 @@ main {
     overflow-y: auto;
 }
 
-#conversation-history {}
+#conversation-history {
+    display: flex;
+    flex-direction: column-reverse;
+}
 
 #conversation-history-wrapper {
     overflow-y: auto;
@@ -294,6 +297,13 @@ strong {
     margin: 10px 0px;
 }
 
+
+
+.conversation-btn-wrapper {
+    display: flex;
+    padding: 10px 0px;
+}
+
 .convo-btn:hover {
     background-color: rgb(241, 241, 241);
 }
@@ -310,4 +320,25 @@ strong {
 .checkbox-div {
     display: flex;
     flex-direction: row;
+}
+
+.loading-sign {
+    width: 5px;
+    height: 5px;
+    margin: auto;
+    border: 6px solid #555;
+    border-top-color: transparent;
+    border-right-color: transparent;
+    border-radius: 75%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }

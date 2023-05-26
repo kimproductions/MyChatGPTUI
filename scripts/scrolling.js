@@ -43,12 +43,12 @@ export function scrollTo(isScrollUp, isInstant) {
 
   // Check if the container is already at the destination
   if (start === end) {
-    console.log("Already at destination, not scrolling");
+    // console.log("Already at destination, not scrolling");
     return;
   }
 
   isScrolling = true;
-  console.log("scrolling");
+  // console.log("scrolling");
   const duration = isInstant ? 0 : 500;
 
   let startTime = null;
