@@ -290,14 +290,14 @@ strong {
     font-family: 'Noto Sans';
     font-size: 12px;
     border-radius: 10px;
-    border: solid;
+    outline: 2px solid rgb(179, 162, 162);
+    /* border:#51614c; */
+    border: none;
     height: 30px;
     background-color: rgb(234, 234, 234);
     width: 100%;
     margin: 10px 0px;
 }
-
-
 
 .conversation-btn-wrapper {
     display: flex;
@@ -309,11 +309,11 @@ strong {
 }
 
 .convo-btn:active {
-    background-color: rgb(206, 206, 206);
+    background-color: rgb(226, 226, 226);
 }
 
 .outlined {
-    outline: 2px solid red;
+    outline: 2px solid rgb(105, 105, 105);
     /* Change the outline style as needed */
 }
 

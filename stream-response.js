@@ -166,7 +166,9 @@ const generate = async () => {
     console.log("content: " + lastcontent)
     hideLoadingSign(conversationIndex);
     SetVariablesOnStop();
-    convoBtn.innerText = await generateResponse("Summarize the following in 40 characters or less: " + lastcontent);
+    const btnTitle = await generateResponse("Summarize the following text in 35 characters or less to be used as a title. Do not use any puncuation! " + lastcontent);
+    convoBtn.innerText = btnTitle;
+    console.log(btnTitle);
     // saveConversation(conversation);
   }
 };
@@ -211,17 +213,32 @@ function setActiveConversation (index) {
   const allConvoDivs = document.querySelectorAll(".conversation");
   allConvoDivs.forEach((convoDiv, index) => {
     convoDiv.style.display = "none";
-    convoDiv
   });
 
   console.log(index);
   const conversationDiv = document.querySelector(
     `.conversation[data-convo-index="${index}"]`
   );
-  // console.log(conversationDiv);
+  
+  highlightActiveConvoBtn(index);
+  
   conversationDiv.style.display = "block";
   scrollTo(false, false);
-  // scrollToPosition(scrollTop)
+}
+
+function highlightActiveConvoBtn(index) {
+  // Select all buttons with the "convo-btn" class and remove the "outlined" class from them
+  const allConvoBtns = document.querySelectorAll(".convo-btn");
+  allConvoBtns.forEach((btn) => btn.classList.remove("outlined"));
+
+  // Select the active conversation button with the matching data-convo-index and add the "outlined" class
+  const activeConvoBtn = document.querySelector(
+    `.conversation-btn-wrapper[data-convo-index="${index}"] .convo-btn`
+  );
+
+  if (activeConvoBtn) {
+    activeConvoBtn.classList.add("outlined");
+  }
 }
 
 // New Conversation Button
@@ -271,15 +288,15 @@ function createConversationBtnsElement(index) {
 
   const convoBtn = document.createElement("button");
   convoBtn.classList.add("convo-btn");
-  convoBtn.innerHTML = "Conversation";
+  convoBtn.innerText = "New Conversation";
 
   const deleteConvoBtn = document.createElement("button");
   deleteConvoBtn.classList.add("delete-convo-btn");
-  deleteConvoBtn.innerHTML = "X";
+  deleteConvoBtn.innerText = "X";
 
   const renameConvoBtn = document.createElement("button");
   renameConvoBtn.classList.add("rename-convo-btn");
-  renameConvoBtn.innerHTML = "R";
+  renameConvoBtn.innerText = "R";
 
   const loadingSign = document.createElement("div");
   loadingSign.classList.add("loading-sign");
