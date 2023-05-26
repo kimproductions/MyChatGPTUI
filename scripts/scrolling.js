@@ -36,40 +36,50 @@ export function scrollIfNearBottom() {
 }
 
 export function scrollTo(isScrollUp, isInstant) {
-  if (!isScrolling) {
-    isScrolling = true;
-    // messagesContainer = document.getElementById("messagesContainer");
-    const start = messagesContainer.scrollTop;
-    const end = isScrollUp ?
-      0 :
-      messagesContainer.scrollHeight - messagesContainer.clientHeight;
-    const duration = isInstant ? 0 : 500; // in milliseconds, adjust for desired speed
-    let startTime = null;
+  const start = messagesContainer.scrollTop;
+  const end = isScrollUp ?
+    0 :
+    messagesContainer.scrollHeight - messagesContainer.clientHeight;
 
-    function easeInOutCubic(t) {
-      return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
-    }
-
-    function lerp(a, b, t) {
-      return a + (b - a) * t;
-    }
-
-    function step(currentTime) {
-      if (!startTime) startTime = currentTime;
-      const elapsed = currentTime - startTime;
-      const t = Math.min(elapsed / duration, 1); // clamps t between 0 and 1
-      const easedT = easeInOutCubic(t);
-      messagesContainer.scrollTop = lerp(start, end, easedT);
-
-      if (t < 1) {
-        requestAnimationFrame(step);
-      } else {
-        isScrolling = false;
-      }
-    }
-
-    requestAnimationFrame(step);
+  // Check if the container is already at the destination
+  if (start === end) {
+    console.log("Already at destination, not scrolling");
+    return;
   }
+
+  isScrolling = true;
+  console.log("scrolling");
+  const duration = isInstant ? 0 : 500;
+
+  let startTime = null;
+
+  function easeInOutCubic(t) {
+    return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+  }
+
+  function lerp(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  function step(currentTime) {
+    if (!startTime) startTime = currentTime;
+    const elapsed = currentTime - startTime;
+    const t = Math.min(elapsed / duration, 1); // clamps t between 0 and 1
+    const easedT = easeInOutCubic(t);
+    messagesContainer.scrollTop = lerp(start, end, easedT);
+
+    if (t < 1) {
+      requestAnimationFrame(step);
+    } else {
+      isScrolling = false;
+    }
+  }
+
+  requestAnimationFrame(step);
+}
+export function scrollToPosition(scrollTop)
+{
+  messagesContainer.scrollTop = scrollTop;
 }
 
 

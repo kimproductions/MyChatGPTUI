@@ -17,7 +17,7 @@ export function createNewCodeBlock(textDiv) {
     return code;
 }
 
-export function CreateMessageElement(role, content, conversation) {
+export function CreateMessageElement(role, content, conversation, divToAppend) {
     const messageWrapper = document.createElement("div");
     messageWrapper.classList.add("message-wrapper");
 
@@ -49,7 +49,8 @@ export function CreateMessageElement(role, content, conversation) {
     messageDiv.addEventListener("keydown", function (event) {
         HandleDeleteKeyEvent(event, messageWrapper, conversation);
     });
-    resultContainer.appendChild(messageWrapper);
+
+    divToAppend.appendChild(messageWrapper);
 
     deleteButton.addEventListener("click", () => DeleteMessage(messageWrapper, conversation));
     editButton.addEventListener("click", () => StartEditingMessage(messageParagraph, conversation, editButton, messageWrapper));

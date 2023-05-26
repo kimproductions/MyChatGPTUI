@@ -12,9 +12,6 @@
   <script type="module" src="scripts/messageElement.js"></script>
   <script type="module" src="scripts/savingConversation.js"></script>
 
-
-
-
   <link href='https://fonts.googleapis.com/css?family=Noto Sans' rel='stylesheet'>
   <link href="prism.css" rel="stylesheet" />
   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
@@ -32,7 +29,8 @@
         </button>
       </div>
       <div id="conversation-history">
-        <div class="conversation">
+
+        <!-- <div class="conversation">
           <button class="convo-btn">
             Conversation
           </button>
@@ -42,7 +40,7 @@
           <button class="rename-convo-btn">
             R
           </button>
-        </div>
+        </div> -->
       </div>
     </div>
     <div id="chat-interface">
@@ -58,15 +56,11 @@
         </button> -->
       </div>
       <div id="middle-section" tabindex="0">
-        
         <div class="messages" id="messages-container">
           <h1 id="header">Isaac's ChatGPT UI</h1>
           <div id="result-container">
-
           </div>
         </div>
-
-
       </div>
       <div class="controls" id="controls">
         <p id="token-limit-error">Over total token limit!</p>
@@ -79,7 +73,6 @@
           <button class="btn" id="save-convo-btn">Save Conversation</button>
         </div>
       </div>
-
     </div>
     <div id="settings">
       <h3>Settings</h3>

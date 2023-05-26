@@ -23,6 +23,7 @@ export const loadConversationList = (conversation) => {
 
   for (let i = 0; i < localStorage.length; i++) {
     const conversationName = localStorage.key(i);
+
     const newConversationDiv = document.createElement("div");
     newConversationDiv.classList.add("conversation");
 
