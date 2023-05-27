@@ -498,7 +498,7 @@ function clearConvo() {
 }
 
 function autoGrow(textarea, maxLines) {
-  const lineHeight = 1.2 * 16; // Assuming a line-height of 1.2em and a font-size of 16px
+  const lineHeight = 1 * 16; // Assuming a line-height of 1.2em and a font-size of 16px
   const maxHeight = lineHeight * maxLines;
   textarea.style.height = 'auto'; // Temporarily reduce the height to calculate the scrollHeight
   const newHeight = Math.min(textarea.scrollHeight, maxHeight);

@@ -277,14 +277,26 @@ strong {
         /* font-size: 18px; */
         height: 100%;
     }
-    
+    .control-buttons
+    {
+        height: 35px;
+    }
 
     #controls {
         /* flex-direction: column; */
         width: 100%;
-        padding: 10px;
+        padding: 5px;
         box-sizing: border-box;
     }
+   #prompt-input {
+       border-radius: 15px;
+       font-size: 17px;
+       padding-top: 0px;
+       padding-bottom: 0px;
+       /* line-height: 35px; */
+       height: 40px;
+       /* same as your height */
+   }
 
     #middle-section {
         /* margin: 10px; */
