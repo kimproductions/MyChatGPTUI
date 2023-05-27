@@ -5,8 +5,21 @@ p {
     font-size: 14px;
 }
 
-main {
+:root {
+    --doc-height: 100%;
+}
+
+html,
+body {
+    padding: 0;
+    margin: 0;
     height: 100vh;
+    /* fallback for Js load */
+    height: var(--doc-height);
+}
+
+main {
+    height: var(--doc-height);
     width: 100vw;
     background: whitesmoke;
     display: flex;
@@ -16,7 +29,6 @@ main {
 #chat-interface {
     display: flex;
     flex-direction: column;
-    flex-grow: 1;  
     margin: auto;
     height: 100%;
     position: relative;
@@ -25,7 +37,6 @@ main {
 #middle-section {
     display: flex;
     flex-grow: 1;
-
     flex-direction: row;
     overflow-y: auto;
 }
@@ -262,21 +273,43 @@ strong {
 }
 
 @media (max-width: 600px) {
+    body {
+        /* font-size: 18px; */
+        height: 100%;
+    }
+    
+
     #controls {
         /* flex-direction: column; */
         width: 100%;
+        padding: 10px;
+        box-sizing: border-box;
     }
-    
-    #conversation-history-wrapper{
+
+    #middle-section {
+        /* margin: 10px; */
+    }
+    #chat-interface{
+        /* body */
+        height: 100%;
+        width: 100%;
+    }
+    #conversation-history-wrapper
+    {
         display: none;
     }
     #settings{
-        display:none;
+        display: none;
     }
     #scroll-wrapper{
         display: none;
     }
-
+    #suffix-input{
+        display: none;
+    }
+    /* * {
+        box-sizing: border-box;
+    } */
 }
 
 .btn {

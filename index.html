@@ -4,7 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- <meta name="viewport" content="width=device-width, initial-scale=1.0" /> -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
   <title>Streaming OpenAI API Completions in JavaScript</title>
   <script type="module" src="stream-response.js"></script>
   <script type="module" src="scripts/scrolling.js"></script>
@@ -51,9 +52,6 @@
         <div>
           <i id="scrolldown-btn" class="fa-solid fa-chevron-down fa-xl scroll-btn"></i>
         </div>
-        <!-- <button id="scrolldown-btn">
-          Scroll Down
-        </button> -->
       </div>
       <div id="middle-section" tabindex="0">
         <div class="messages" id="messages-container">
@@ -67,9 +65,9 @@
         <textarea id="prompt-input" placeholder="Send a message"></textarea>
         <textarea id="suffix-input" placeholder="additional inputs"></textarea>
         <div class="control-buttons">
-          <button class="btn" id="generate-btn">Generate</button>
+          <button class="btn" id="clear-convo-btn">Clear Convo</button>
           <button class="btn" id="stop-btn">Stop</button>
-          <button class="btn" id="clear-convo-btn">Clear Conversation</button>
+          <button class="btn" id="generate-btn">Generate</button>
           <!-- <button class="btn" id="save-convo-btn">Save Conversation</button> -->
         </div>
       </div>

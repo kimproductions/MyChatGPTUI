@@ -21,7 +21,7 @@ const tokenLimitErrorMessage = document.getElementById("token-limit-error");
 const systemMessageTextArea = document.getElementById("system-message");
 const shouldHighlightCodeCheckbox = document.getElementById("code-block-checkbox");
 
-let controller = null; // Store the AbortController instance
+let controllers = []; // Store the AbortController instance
 let saveFileName = "conversationHistory3";
 let activeConversationIndex = 0;
 let conversationList = [{ conversationName: "New Conversation", conversation: [] }];
@@ -36,8 +36,9 @@ fetchConfig();
 
 const generate = async () => {
   // Create a new AbortController instance
-  controller = new AbortController();
-  const signal = controller.signal;
+  const newController = new AbortController();
+  controllers.push(newController);
+  const signal = newController.signal;
   const conversationIndex = activeConversationIndex;
   const conversation = conversationList[activeConversationIndex].conversation;
 
@@ -444,11 +445,10 @@ function containsOneBacktick(str) {
 }
 
 const stop = () => {
-  // Abort the fetch request by calling abort() on the AbortController instance
-  if (controller) {
+  controllers.forEach((controller) => {
     controller.abort();
-    controller = null;
-  }
+  });
+  controllers = [];
 };
 
 //button controls and event listeners
@@ -460,6 +460,7 @@ promptInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();
     generate();
+    promptInput.blur();
   }
   // event.preventDefault
 });
@@ -515,8 +516,6 @@ function SetVariablesOnGenerate()
 
 function SetVariablesOnStop()
 {
-
   generateBtn.disabled = false;
   stopBtn.disabled = true;
-  controller = null; // Reset the AbortController instance
 }
