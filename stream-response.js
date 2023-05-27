@@ -4,9 +4,11 @@
  */
 
 import { scrollIfNearBottom, scrollTo, scrollToPosition } from './scripts/scrolling.js';
-import { fetchConfig, API_URL, API_KEY } from './scripts/config.js';
+import { fetchConfig } from './scripts/config.js';
 import { createNewCodeBlock, resultContainer, CreateMessageElement } from './scripts/messageElement.js';
-import { highlightConvoButton, loadConversationList, updateResultContainer, loadConversationFromFile, createFileName, saveConversation } from './scripts/savingConversation.js';
+import { loadConversationHistory, saveConversationHistory } from './scripts/savingConversation.js';
+import { generateResponse, fetchResponseFromApi, validateResponse } from './scripts/generate.js';
+import { showLoadingSign, hideLoadingSign } from './scripts/historyUI.js';
 
 const apiKey = document.getElementById("api-key");
 const promptInput = document.getElementById("prompt-input");
@@ -20,9 +22,11 @@ const systemMessageTextArea = document.getElementById("system-message");
 const shouldHighlightCodeCheckbox = document.getElementById("code-block-checkbox");
 
 let controller = null; // Store the AbortController instance
-
+let saveFileName = "conversationHistory3";
 let activeConversationIndex = 0;
-let conversationList = [[]];
+let conversationList = [{ conversationName: "New Conversation", conversation: [] }];
+let previousConvoIndex = null;
+
 initializeConversationList();
 
 fetchConfig();
@@ -34,14 +38,16 @@ const generate = async () => {
   // Create a new AbortController instance
   controller = new AbortController();
   const signal = controller.signal;
-  const conversation = conversationList[activeConversationIndex];
   const conversationIndex = activeConversationIndex;
+  const conversation = conversationList[activeConversationIndex].conversation;
 
   const conversationButtonsDiv = document.querySelector(
     `.conversation-btn-wrapper[data-convo-index="${conversationIndex}"]`
   );
   let convoBtn = conversationButtonsDiv.querySelector('.convo-btn');
-  console.log(convoBtn);
+
+  let editButton = null;
+  let deleteButton = null;
 
   try {
     const promptValue = promptInput.value;
@@ -49,25 +55,34 @@ const generate = async () => {
       `.conversation[data-convo-index="${conversationIndex}"]`
     );
     
-    
     SetVariablesOnGenerate();
     UpdateConversationWithSystemAndUserMessage(promptValue, systemMessageTextArea.value, conversation); 
     autoGrow(promptInput); //collapse promptinput ui
 
     CreateMessageElement("user", promptValue, conversation, conversationDiv);
     scrollIfNearBottom();
+    saveConversationHistory(saveFileName, conversationList);
     
     // Fetch the response from the OpenAI API with the signal from AbortController
-    const response = await fetchResponseFromApi(signal, conversation);
+    const response = await fetchResponseFromApi(signal, conversation, suffixInput.value);
     if (!validateResponse(response)) {
       throw new Error("Invalid Response");
     }
 
+    conversation.push({
+      role: "assistant",
+      content: ""
+    });
+
     //get the message div from 
     const messageDiv = CreateMessageElement("assistant", "", conversation, conversationDiv);
     
-    let currentResponseParagraph = document.createElement("p");
-    messageDiv.appendChild(currentResponseParagraph);
+    let currentResponseParagraph = messageDiv.querySelector("p");
+    editButton = messageDiv.parentElement.querySelector(".edit-message-btn");
+    deleteButton = messageDiv.parentElement.querySelector(".delete-message-btn");
+    editButton.style.display = "none";
+    deleteButton.style.display = "none";
+    // messageDiv.appendChild(currentResponseParagraph);
 
     let fullResult = "";
     scrollTo(false, false);
@@ -142,18 +157,16 @@ const generate = async () => {
           fullResult += content;
           scrollIfNearBottom();
           showLoadingSign(conversationIndex);
+
+          //update the latest conversation upon content receival
+          conversation[conversation.length - 1].content += content;
+          saveConversationHistory(saveFileName, conversationList);
+          // console.log(conversation);
         }
       }
     }
-    conversation.push({
-      role: "assistant",
-      content: fullResult
-    });
-
     // run function that makes an api call and changes convoBtn's text to the result of that call.
-
     console.log(conversation);
-    console.log(conversationList);
   } catch (error) {
     // Handle fetch request errors
     if (signal.aborted) {
@@ -162,52 +175,25 @@ const generate = async () => {
       console.error("Error:", error);
     }
   } finally {
-    let lastcontent = conversation[conversation.length-1].content;
-    console.log("content: " + lastcontent)
-    hideLoadingSign(conversationIndex);
     SetVariablesOnStop();
+    hideLoadingSign(conversationIndex);
+    if (editButton) { editButton.style.display = "block"; }
+    if (deleteButton) {deleteButton.style.display = "block"; }
+
+    let lastcontent = conversation[conversation.length-1].content;
     const btnTitle = await generateResponse("Summarize the following text in 35 characters or less to be used as a title. Do not use any puncuation! " + lastcontent);
+    console.log("title: " + btnTitle);
+    // conversation.push({conversationName: btnTitle});
+    conversationList[conversationIndex].conversationName = btnTitle;
     convoBtn.innerText = btnTitle;
-    console.log(btnTitle);
+    // console.log(btnTitle);
     // saveConversation(conversation);
+    saveConversationHistory(saveFileName, conversationList);
+    
   }
 };
-
-const generateResponse = async (promptValue) => {
-  let controller = new AbortController();
-  const signal = controller.signal;
-  try {
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: promptValue }],
-        max_tokens: 100,
-      }),
-      signal, // Pass the signal to the fetch request
-    });
-
-    const data = await response.json();
-    return data.choices[0].message.content;
-  } catch (error) {
-    if (signal.aborted) {
-      console.error("Request aborted");
-    } else {
-      console.error("Error:", error);
-    }
-    return ""; // Return an empty string if an error occurs
-  } finally {
-    // Enable the generate button and disable the stop button
-
-    controller = null; // Reset the AbortController instance
-  }
-};
-
 function setActiveConversation (index) {
+  previousConvoIndex = activeConversationIndex;
   activeConversationIndex = index;
 
   const allConvoDivs = document.querySelectorAll(".conversation");
@@ -215,7 +201,6 @@ function setActiveConversation (index) {
     convoDiv.style.display = "none";
   });
 
-  console.log(index);
   const conversationDiv = document.querySelector(
     `.conversation[data-convo-index="${index}"]`
   );
@@ -241,11 +226,36 @@ function highlightActiveConvoBtn(index) {
   }
 }
 
+const conversationHistoryWrapper = document.getElementById("conversation-history-wrapper");
+conversationHistoryWrapper.addEventListener("keydown", (event) => {
+  // event.preventDefault();
+  // event.stopPropagation();
+  if (event.key === "ArrowUp" || event.key === "w"){
+    console.log("up");
+    if (activeConversationIndex + 1 < conversationList.length)
+    {
+      setActiveConversation(activeConversationIndex + 1);
+    }
+  }
+  else if (event.key === "ArrowDown" || event.key === "s")
+  {
+    console.log("down");
+    if (activeConversationIndex > 0)
+    {
+      setActiveConversation(activeConversationIndex - 1);
+    }
+  }
+});
+
 // New Conversation Button
 const newConversationBtn = document.getElementById("new-conversation-btn");
 newConversationBtn.onclick = () => {
+  //make sure controls aren't ghosted
+  const controls = document.querySelector("#controls");
+  controls.classList.remove("ghosted");
+
   // Add new conversation to the conversationList.
-  conversationList.push([]);
+  conversationList.push({ conversationName: "New Conversation", conversation: [] });
   console.log(conversationList);
   // Set new conversation as the active one.
   // Create and add the conversation div under the conversation-history.
@@ -260,15 +270,35 @@ newConversationBtn.onclick = () => {
 
 function initializeConversationList()
 {
+  conversationList = loadConversationHistory(saveFileName);
   const conversationHistory = document.getElementById("conversation-history");
   conversationHistory.innerHTML = "";
+
+  // if (conversationList[i].conversationName) {
+  //   convoBtn.innerText = conversationList[i].conversationName;
+  // }
+  
   for (let i = 0; i < conversationList.length; i++)
   {
-    conversationHistory.appendChild(
-      createConversationBtnsElement(i),
-    );
-    createConversationElement(i);
+    let conversationBtnsDiv = createConversationBtnsElement(i);
+    conversationHistory.appendChild(conversationBtnsDiv);
+    let convoBtn = conversationBtnsDiv.querySelector(".convo-btn");
+    convoBtn.innerText = conversationList[i].conversationName;
+    const conversationDiv = createConversationElement(i);
+    // loadConversationElements(i);
+    const conversation = conversationList[i].conversation;
+
+    conversation.forEach((message, index) => {
+      if (message.role !== "system" && !message.conversationName)
+      {
+        // console.log(message.role);
+        const role = message.role;
+        const content = message.content;
+        const messageElement = CreateMessageElement(role, content, conversation, conversationDiv);
+      }
+    });
   }
+
   setActiveConversation(0);
 }
 
@@ -279,6 +309,7 @@ function createConversationElement(index)
   conversationDiv.setAttribute("data-convo-index", index);
   conversationDiv.style.display = "none";
   resultContainer.appendChild(conversationDiv);
+  return conversationDiv;
 }
 
 
@@ -310,6 +341,11 @@ function createConversationBtnsElement(index) {
   convoBtn.addEventListener("click", (event) => {
     const currentIndex = parseInt(event.currentTarget.parentElement.getAttribute("data-convo-index"));
     setActiveConversation(currentIndex);
+    conversationButtonsDiv.parentElement.parentElement.focus();
+  });
+
+  convoBtn.addEventListener("mousedown", function (event) {
+    event.preventDefault();
   });
 
   deleteConvoBtn.addEventListener("click", (event) => {
@@ -364,21 +400,10 @@ function deleteConversation(currentIndex) {
   } else if (currentIndex < activeConversationIndex) {
     activeConversationIndex--;
   }
+  saveConversationHistory(saveFileName, conversationList);
 }
 
-const showLoadingSign = (conversationIndex) => {
-  const loadingSign = document.querySelector(`.conversation-btn-wrapper[data-convo-index="${conversationIndex}"] .loading-sign`);
-  loadingSign.style.display = 'block';
-}
 
-// Hide the loading sign
-const hideLoadingSign = (conversationIndex) => {
-  const loadingSign = document.querySelector(`.conversation-btn-wrapper[data-convo-index="${conversationIndex}"] .loading-sign`);
-  loadingSign.style.display = 'none';
-  console.log("hiding");
-  console.log("conversationIndex");
-
-}
 
 function UpdateConversationWithSystemAndUserMessage(promptValue, systemMessage, conversation) {
   if (conversation.length === 0 || conversation[0].role !== "system") {
@@ -412,39 +437,6 @@ function doesLastTwoContentsContainThreeBackticks(lastTwoContents)
   return combinedContents.includes("```");
 }
 
-async function fetchResponseFromApi(signal, conversation) {
-  return await fetch(API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: model.value,
-      messages: conversation.map((message) => ({
-        role: message.role,
-        content: message === conversation[conversation.length - 1] ?
-          message.content + "Additional Input: " + suffixInput.value : message.content
-      })),
-      max_tokens: 2000,
-      stream: true, // For streaming responses
-    }),
-    signal, // Pass the signal to the fetch request
-  });
-}
-
-function validateResponse(response) {
-  if (!response.ok) {
-    if (response.status === 400) {
-      console.log("Server returned a status of 400, most likely over the token limit");
-      tokenLimitErrorMessage.style.display = "block";
-      throw new Error("Server returned a status of 400");
-    } else {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-  }
-  return true;
-}
 
 function containsOneBacktick(str) {
   const regex = /^[^]*$/; // regex to match one backtick surrounding any number of characters that are not a backtick
@@ -469,6 +461,7 @@ promptInput.addEventListener("keydown", (event) => {
     event.preventDefault();
     generate();
   }
+  // event.preventDefault
 });
 
 generateBtn.disabled = false;
@@ -479,9 +472,28 @@ promptInput.addEventListener('input', () => autoGrow(promptInput, 10));
 suffixInput.addEventListener('input', () => autoGrow(suffixInput, 10));
 systemMessageTextArea.addEventListener('input', () => autoGrow(systemMessageTextArea, 10));
 
+
+
+document.addEventListener('keydown', function (event) {
+  if (event.key === "Tab" && !event.shiftKey) { // 9 is the keyCode for the Tab key
+    event.preventDefault(); // Prevent the default tab behavior (switching focus between elements)
+    event.stopPropagation; // Prevent the default tab behavior (switching focus between elements)
+
+    if (previousConvoIndex !== null)
+    {
+      setActiveConversation(previousConvoIndex);
+    }
+  }
+});
+
+
 function clearConvo() {
-  // conversation = [];
-  resultContainer.innerHTML = "";
+  conversationList[activeConversationIndex].conversation = [];
+  // setActiveConversation[activeConversationIndex];
+  const activeConvoDiv = document.querySelector(
+    `.conversation[data-convo-index="${activeConversationIndex}"]`
+  );
+  activeConvoDiv.innerHTML = "";
 }
 
 function autoGrow(textarea, maxLines) {
