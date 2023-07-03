@@ -68,7 +68,7 @@ const generate = async () => {
     CreateMessageElement("user", promptValue, conversation, conversationDiv);
     scrollIfNearBottom();
     saveConversationHistory(saveFileName, conversationList);
-    console.log("conversation being sent: ", conversation);
+    // console.log("conversation being sent: ", conversationList);
     // Fetch the response from the OpenAI API with the signal from AbortController
     console.log(tokenLimit.value);
     const response = await fetchResponseFromApi(signal, conversation, suffixInput.value, parseInt(tokenLimit.value));
