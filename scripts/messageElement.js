@@ -1,10 +1,17 @@
 import { saveConversationHistory } from "./savingConversation.js";
 import { scrollToPosition, scrollTo } from "./scrolling.js";
-
-
+import  { conversationList, saveFileName } from '../stream-response.js';
+// import  { saveFileName} from "../stream-response.js"
 export const resultContainer = document.getElementById("result-container");
 const messageContainer = document.getElementById("messages-container");
 
+
+async function run()
+{
+    console.log("convo list", conversationList);
+}
+
+setTimeout(run, 1000);
 
 export function createNewCodeBlock(textDiv) {
     const pre = document.createElement("pre");
@@ -92,16 +99,15 @@ export function CreateMessageElement(role, content, conversation, divToAppend) {
     
             scrollTo(false, false);
         }
+
+        
     });
 
     divToAppend.appendChild(messageWrapper);
 
     deleteButton.addEventListener("click", () => DeleteMessage(messageWrapper, conversation));
     editButton.addEventListener("click", () => StartEditingMessage(messageParagraph, conversation, editButton, messageWrapper));
-
-
     RefreshMessageIndices();
-
     return messageDiv;
 }
 
@@ -179,14 +185,29 @@ export function HandleDeleteKeyEvent(event, messageWrapper, conversation) {
     }
 }
 
-export function RefreshMessageIndices()
-{
-    // const index = parseInt(messageDiv.getAttribute("data-index"));
-    const messageWrapperElements = resultContainer.getElementsByClassName("message-wrapper");
-    for (let i = 0; i < messageWrapperElements.length; i++) {
-        // Update the data-index attribute with the new index
-        messageWrapperElements[i].setAttribute("data-index", i);
-        // console.log("index: " + i);
+export function RefreshMessageIndices() {
+    // For each conversation
+    for (let i = 0; i < conversationList.length; i++) {
+        let conversation = conversationList[i].conversation;
+
+        // Re-select each conversation div to be sure it's available at this point
+        let conversationDivs = document.querySelectorAll(`.conversation[data-convo-index="${i}"]`);
+        // If there's no div, skip to the next iteration
+        if (!conversationDivs.length) {
+            console.warn(`Could not find conversation ${i} div`);
+            continue;
+        }
+
+        conversationDivs.forEach(conversationDiv => {
+            // Get all message-wrapper elements in the specific conversation div
+            let messageWrapperElements = conversationDiv.querySelectorAll(".message-wrapper");
+
+            // Update the data-index for each message-wrapper in this conversation
+            messageWrapperElements.forEach((messageWrapper, index) => {
+                // Update the data-index attribute with the new index
+                messageWrapper.setAttribute("data-index", index);
+            });
+        })
     }
 }
 
@@ -195,10 +216,13 @@ export function DeleteMessage(messageWrapper, conversation) {
     // Get the index from the messageDiv's data-index attribute
     const index = parseInt(messageWrapper.getAttribute("data-index"));
     // Remove the message from the conversation and add one to index to ignore the system message
-    conversation.splice(index + 1, 1);
+    console.log("deleting: ", conversation.splice(index + 1, 1));
+
     console.log("deleting index: " + index);
     // Remove the messageDiv from the DOM
     messageWrapper.parentNode.removeChild(messageWrapper);
     // After deleting the message, update the data-index attribute of the remaining messages
     RefreshMessageIndices();
-}
+    console.log('conversation: ', conversation);
+    console.log('conversationlist: ', conversationList);
+}   

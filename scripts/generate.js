@@ -1,4 +1,5 @@
 import { API_URL, API_KEY } from './config.js';
+const tokenLimitErrorMessage = document.getElementById("token-limit-error");
 
 export const generateResponse = async (promptValue) => {
     let controller = new AbortController();
@@ -34,7 +35,7 @@ export const generateResponse = async (promptValue) => {
     }
 };
 
-export async function fetchResponseFromApi(signal, conversation, additionalInput) {
+export async function fetchResponseFromApi(signal, conversation, additionalInput, tokenLimit) {
     return await fetch(API_URL, {
         method: "POST",
         headers: {
@@ -48,7 +49,7 @@ export async function fetchResponseFromApi(signal, conversation, additionalInput
                 content: message === conversation[conversation.length - 1] ?
                     message.content + " (Additional Input: '" + additionalInput + "' If there's no additional input, ignore this)": message.content
             })),
-            max_tokens: 2000,
+            max_tokens: tokenLimit,
             stream: true, // For streaming responses
         }),
         signal, // Pass the signal to the fetch request

@@ -5,7 +5,7 @@
 
 import { scrollIfNearBottom, scrollTo, scrollToPosition } from './scripts/scrolling.js';
 import { fetchConfig } from './scripts/config.js';
-import { createNewCodeBlock, resultContainer, CreateMessageElement } from './scripts/messageElement.js';
+import { createNewCodeBlock, resultContainer, RefreshMessageIndices, CreateMessageElement } from './scripts/messageElement.js';
 import { loadConversationHistory, saveConversationHistory } from './scripts/savingConversation.js';
 import { generateResponse, fetchResponseFromApi, validateResponse } from './scripts/generate.js';
 import { showLoadingSign, hideLoadingSign } from './scripts/historyUI.js';
@@ -14,6 +14,7 @@ const apiKey = document.getElementById("api-key");
 const promptInput = document.getElementById("prompt-input");
 const suffixInput = document.getElementById("suffix-input");
 const generateBtn = document.getElementById("generate-btn");
+const tokenLimit = document.getElementById("token-range");
 const stopBtn = document.getElementById("stop-btn");
 const clearBtn = document.getElementById("clear-convo-btn");
 const model = document.getElementById("model");
@@ -22,12 +23,16 @@ const systemMessageTextArea = document.getElementById("system-message");
 const shouldHighlightCodeCheckbox = document.getElementById("code-block-checkbox");
 
 let controllers = []; // Store the AbortController instance
-let saveFileName = "conversationHistory3";
+export let saveFileName = "conversationHistory3";
 let activeConversationIndex = 0;
-let conversationList = [{ conversationName: "New Conversation", conversation: [] }];
+export let conversationList = [{ conversationName: "New Conversation", conversation: [] }];
 let previousConvoIndex = null;
 
-initializeConversationList();
+
+document.addEventListener("DOMContentLoaded", (event) => {
+  initializeConversationList();
+  //...the rest of your code
+});
 
 fetchConfig();
 
@@ -63,9 +68,10 @@ const generate = async () => {
     CreateMessageElement("user", promptValue, conversation, conversationDiv);
     scrollIfNearBottom();
     saveConversationHistory(saveFileName, conversationList);
-    
+    console.log("conversation being sent: ", conversation);
     // Fetch the response from the OpenAI API with the signal from AbortController
-    const response = await fetchResponseFromApi(signal, conversation, suffixInput.value);
+    console.log(tokenLimit.value);
+    const response = await fetchResponseFromApi(signal, conversation, suffixInput.value, parseInt(tokenLimit.value));
     if (!validateResponse(response)) {
       throw new Error("Invalid Response");
     }
@@ -299,7 +305,6 @@ function initializeConversationList()
       }
     });
   }
-
   setActiveConversation(0);
 }
 
@@ -374,6 +379,7 @@ function updateConversationsDataIndex() {
 
 function deleteConversation(currentIndex) {
   conversationList.splice(currentIndex, 1);
+  console.log(conversationList);
 
   // Remove the conversation and conversation button elements.
   const conversationBtnDivToBeRemoved = document.querySelector(
@@ -452,8 +458,11 @@ const stop = () => {
 };
 
 //button controls and event listeners
-document.getElementById("token-range").addEventListener("input", function (event) {
+
+
+tokenLimit.addEventListener("input", function (event) {
   this.nextElementSibling.value = this.value;
+  console.log(this.value);
 });
 
 promptInput.addEventListener("keydown", (event) => {
