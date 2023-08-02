@@ -300,7 +300,8 @@ function initializeConversationList()
       {
         // console.log(message.role);
         const role = message.role;
-        const content = message.content;
+        let content = message.content;
+        content = content.replace(/\n/g, '<br>');
         const messageElement = CreateMessageElement(role, content, conversation, conversationDiv);
       }
     });
