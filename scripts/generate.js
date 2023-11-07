@@ -1,4 +1,4 @@
-import { API_URL, API_KEY } from './config.js';
+import { API_URL, API_KEY } from "./config.js";
 const tokenLimitErrorMessage = document.getElementById("token-limit-error");
 
 export const generateResponse = async (promptValue) => {
@@ -35,7 +35,13 @@ export const generateResponse = async (promptValue) => {
     }
 };
 
-export async function fetchResponseFromApi(signal, conversation, additionalInput, tokenLimit) {
+export async function fetchResponseFromApi(
+    signal,
+    conversation,
+    additionalInput,
+    tokenLimit,
+    selectedModel
+) {
     return await fetch(API_URL, {
         method: "POST",
         headers: {
@@ -43,11 +49,16 @@ export async function fetchResponseFromApi(signal, conversation, additionalInput
             Authorization: `Bearer ${API_KEY}`,
         },
         body: JSON.stringify({
-            model: model.value,
+            model: selectedModel,
             messages: conversation.map((message) => ({
                 role: message.role,
-                content: message === conversation[conversation.length - 1] ?
-                    message.content + " (Additional Input: '" + additionalInput + "' If there's no additional input, ignore this)": message.content
+                content:
+                    message === conversation[conversation.length - 1]
+                        ? message.content +
+                          " (Additional Input: '" +
+                          additionalInput +
+                          "' If there's no additional input, ignore this)"
+                        : message.content,
             })),
             max_tokens: tokenLimit,
             stream: true, // For streaming responses
@@ -59,7 +70,9 @@ export async function fetchResponseFromApi(signal, conversation, additionalInput
 export function validateResponse(response) {
     if (!response.ok) {
         if (response.status === 400) {
-            console.log("Server returned a status of 400, most likely over the token limit");
+            console.log(
+                "Server returned a status of 400, most likely over the token limit"
+            );
             tokenLimitErrorMessage.style.display = "block";
             throw new Error("Server returned a status of 400");
         } else {

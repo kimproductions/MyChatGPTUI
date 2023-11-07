@@ -1,7 +1,7 @@
 body,
 p {
     margin: 0;
-    font-family: 'Noto Sans';
+    font-family: "Noto Sans";
     font-size: 14px;
 }
 
@@ -57,7 +57,8 @@ main {
     /* padding: px; */
 }
 
-.messages {}
+.messages {
+}
 
 #header {
     display: flex;
@@ -71,7 +72,7 @@ main {
 input,
 select,
 option {
-    font-family: 'Noto Sans';
+    font-family: "Noto Sans";
 }
 
 #settings {
@@ -93,7 +94,7 @@ option {
     /*   flex-shrink: 0; */
     display: flex;
     flex-direction: column;
-    gap: .25rem;
+    gap: 0.25rem;
     background: grey;
     border-radius: 10px;
     width: 50vw;
@@ -111,12 +112,11 @@ textarea {
     /* Disables resizing of textarea */
     /* overflow: auto; */
 
-    font-family: 'Noto Sans';
+    font-family: "Noto Sans";
     font-size: 14px;
     border-radius: 4px;
     /* Adds scroll functionality when the text is longer than the textarea */
 }
-
 
 .control-buttons {
     display: flex;
@@ -142,23 +142,23 @@ textarea {
 }
 
 .scroll-btn:hover {
-    color:rgb(62, 62, 62) 
+    color: rgb(62, 62, 62);
 }
 
 .scroll-btn:active {
-    color:rgb(125, 125, 125)
+    color: rgb(125, 125, 125);
 }
 
 .fa-xl {
     font-size: 1.5rem;
-}   
+}
 
 #scroll-wrapper {
     position: absolute;
     bottom: 160px;
     right: -30px;
     z-index: 10;
-    display:flex;
+    display: flex;
     flex-direction: column;
 }
 
@@ -179,7 +179,7 @@ strong {
 }
 
 .message-wrapper {
-    display:flex;
+    display: flex;
     flex-direction: row;
     padding: 0px;
 }
@@ -217,7 +217,6 @@ strong {
     background-color: #155a00;
 }
 
-
 .generate-textarea-btn {
     display: flex;
     /* margin-left: auto; */
@@ -235,7 +234,6 @@ strong {
     background-color: #00245a;
 }
 
-
 .assistant-text {
     background-color: rgb(230, 230, 230);
     overflow-wrap: break-word;
@@ -246,7 +244,7 @@ strong {
     width: 90vw;
     margin: auto;
     display: flex;
-    flex-direction: column;    
+    flex-direction: column;
     padding: 20px 40px;
     /* position: relative; */
 }
@@ -255,7 +253,6 @@ strong {
     .message {
         width: 80vw;
     }
-
 }
 
 @media screen and (min-width: 769px) {
@@ -268,8 +265,6 @@ strong {
     .message {
         width: 50vw;
     }
-
-
 }
 
 @media (max-width: 600px) {
@@ -277,8 +272,7 @@ strong {
         /* font-size: 18px; */
         height: 100%;
     }
-    .control-buttons
-    {
+    .control-buttons {
         height: 35px;
     }
 
@@ -288,35 +282,34 @@ strong {
         padding: 5px;
         box-sizing: border-box;
     }
-   #prompt-input {
-       border-radius: 15px;
-       font-size: 17px;
-       padding-top: 0px;
-       padding-bottom: 0px;
-       /* line-height: 35px; */
-       height: 40px;
-       /* same as your height */
-   }
+    #prompt-input {
+        border-radius: 15px;
+        font-size: 17px;
+        padding-top: 0px;
+        padding-bottom: 0px;
+        /* line-height: 35px; */
+        height: 40px;
+        /* same as your height */
+    }
 
     #middle-section {
         /* margin: 10px; */
     }
-    #chat-interface{
+    #chat-interface {
         /* body */
         height: 100%;
         width: 100%;
     }
-    #conversation-history-wrapper
-    {
+    #conversation-history-wrapper {
         display: none;
     }
-    #settings{
+    #settings {
         display: none;
     }
-    #scroll-wrapper{
+    #scroll-wrapper {
         display: none;
     }
-    #suffix-input{
+    #suffix-input {
         display: none;
     }
     /* * {
@@ -325,13 +318,13 @@ strong {
 }
 
 .btn {
-    font-family: 'Noto Sans';
+    font-family: "Noto Sans";
     font-size: 14px;
     border-radius: 10px;
     border: none;
     height: 30px;
 }
-    
+
 #token-limit-error {
     display: none;
     color: red;
@@ -344,7 +337,7 @@ strong {
 }
 
 .convo-btn {
-    font-family: 'Noto Sans';
+    font-family: "Noto Sans";
     font-size: 12px;
     border-radius: 10px;
     border: none;
@@ -358,7 +351,7 @@ strong {
 }
 
 #new-conversation-btn {
-    font-family: 'Noto Sans';
+    font-family: "Noto Sans";
     font-size: 12px;
     border-radius: 10px;
     outline: 2px solid rgb(179, 162, 162);
@@ -413,4 +406,3 @@ strong {
         transform: rotate(360deg);
     }
 }
-
